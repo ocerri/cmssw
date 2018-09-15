@@ -36,7 +36,7 @@ BToKJPsimumu=cms.EDProducer("BToKmumuProducer",
 
 
 
-BToKmumuTable=cms.EDProducer("SimpleCompositeCandidateFlatTableProducer", 
+BToKmumuTable=cms.EDProducer("SimpleCompositeCandidateFlatTableProducer",
                              src=cms.InputTag("BToKmumu"),
                              cut=cms.string(""),
                              name=cms.string("BToKmumu"),
@@ -80,7 +80,7 @@ BToKmumuTable=cms.EDProducer("SimpleCompositeCandidateFlatTableProducer",
                                 eta=Var("userFloat('eta')", float,doc="eta of BToKmumu candidate (refitted)"),
                                 phi=Var("userFloat('phi')", float,doc="phi of BToKmumu candidate (refitted)"),
                                 mass=Var("userFloat('mass')", float,doc="mass of BToKmumu candidate (refitted)"),
-                                mass_err=Var("userFloat('mass_err')", float,doc="error on mass of BToKmumu candidate"),                                
+                                mass_err=Var("userFloat('mass_err')", float,doc="error on mass of BToKmumu candidate"),
                                 Lxy=Var("userFloat('Lxy')", float,doc="significance of BToKmumu vertex-beamspot xy-separation"),
                                 ctxy=Var("userFloat('ctxy')", float,doc="BToKmumu vertex-beamspot xy-separation/pt"),
                                 CL_vtx=Var("userFloat('CL_vtx')", float,doc="BToKmumu chi2 vertex probability"),
