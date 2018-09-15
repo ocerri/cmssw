@@ -8,8 +8,9 @@
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/ESHandle.h"
 
-#include "DataFormats/PatCandidates/interface/PackedGenParticle.h"
 #include "DataFormats/PatCandidates/interface/CompositeCandidate.h"
+#include "DataFormats/PatCandidates/interface/PackedGenParticle.h"
+#include "DataFormats/Candidate/interface/Candidate.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
 
 #include <TLorentzVector.h>
@@ -74,6 +75,13 @@ void BuToD0munuToKPimunuMCTruthProducer::produce(edm::Event& iEvent, const edm::
         // Bmeson.addDaughter( muon1, "muon1");
         Bmeson.addUserInt("B_pdgID", p.pdgId());
         Bmeson.addUserFloat("B_pt", p.pt());
+        Bmeson.addUserFloat("B_eta", p.eta());
+
+        for(unsigned int k = 0; k < p.numberOfDaughters(); k++) {
+          const reco::Candidate * d = p.daughter(k);
+          cout << "\t" << k << " " << d->pdgId() << endl;
+        }
+
         result->push_back(Bmeson);
       }
     }

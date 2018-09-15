@@ -27,7 +27,7 @@ process.maxEvents = cms.untracked.PSet(
 
 # Input source
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('file:/eos/user/o/ocerri/BPhysics/data/cmsMC_private/Bu_D0munu_KPimunu_NoPU_v0/Bu_D0munu_KPimunu_MINIAODSIM.root'),
+    fileNames = cms.untracked.vstring('file:/eos/user/o/ocerri/BPhysics/data/cmsMC_private/Bu_D0munu_KPimunu_NoPU_9-4-4_v1/Bu_D0munu_KPimunu_MINIAODSIM.root'),
     secondaryFileNames = cms.untracked.vstring()
 )
 
@@ -52,7 +52,7 @@ process.NANOAODSIMoutput = cms.OutputModule("NanoAODOutputModule",  #NANOAOD fla
         dataTier = cms.untracked.string('NANOAODSIM'),
         filterName = cms.untracked.string('')
     ),
-    fileName = cms.untracked.string('file:Bu_D0munu_KPimunu_NANOAODSIM.root'),
+    fileName = cms.untracked.string('file:/eos/user/o/ocerri/BPhysics/data/cmsMC_private/Bu_D0munu_KPimunu_NoPU_9-4-4_v1/Bu_D0munu_KPimunu_NANOAODSIM.root'),
     # outputCommands = process.NANOAODSIMEventContent.outputCommands
     outputCommands = cms.untracked.vstring(
                                             'drop *',
@@ -63,9 +63,9 @@ process.NANOAODSIMoutput = cms.OutputModule("NanoAODOutputModule",  #NANOAOD fla
                                             'drop nanoaodFlatTable_rivet*Table_*_*',
                                             'drop nanoaodFlatTable_subJetTable_*_*',
                                             'drop nanoaodFlatTable_ttbarCategoryTable_*_*',
-                                            'keep edmTriggerResults_*_*_*',
-                                            'keep nanoaodMergeableCounterTable_*Table_*_*',
-                                            'keep nanoaodUniqueString_nanoMetadata_*_*'
+                                            # 'keep edmTriggerResults_*_*_*',
+                                            # 'keep nanoaodMergeableCounterTable_*Table_*_*',
+                                            # 'keep nanoaodUniqueString_nanoMetadata_*_*'
                                             )
 )
 # Additional output definition
