@@ -27,7 +27,7 @@ process.maxEvents = cms.untracked.PSet(
 
 # Input source
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('file:/eos/user/o/ocerri/BPhysics/data/cmsMC_private/Bu_D0munu_KPimunu_NoPU_10-2-3_v0/Bu_D0munu_KPimunu_MINIAODSIM.root'),
+    fileNames = cms.untracked.vstring('file:/eos/user/o/ocerri/BPhysics/data/cmsMC_private/HardQCD_bbar_Bu_D0munu_KPimunu_NoPU_10-2-3_v0/HardQCD_bbar_Bu_D0munu_KPimunu_MINIAODSIM.root'),
     secondaryFileNames = cms.untracked.vstring()
 )
 
@@ -52,15 +52,16 @@ process.NANOAODSIMoutput = cms.OutputModule("NanoAODOutputModule",
         dataTier = cms.untracked.string('NANOAODSIM'),
         filterName = cms.untracked.string('')
     ),
-    fileName = cms.untracked.string('file:/eos/user/o/ocerri/BPhysics/data/cmsMC_private/Bu_D0munu_KPimunu_NoPU_10-2-3_v0/Bu_D0munu_KPimunu_NANOAODSIM.root'),
+    fileName = cms.untracked.string('file:/eos/user/o/ocerri/BPhysics/data/cmsMC_private/HardQCD_bbar_Bu_D0munu_KPimunu_NoPU_10-2-3_v0/HardQCD_bbar_Bu_D0munu_KPimunu_NANOAODSIM.root'),
     # outputCommands = process.NANOAODSIMEventContent.outputCommands
     outputCommands = cms.untracked.vstring(
                                             'drop *',
                                             'keep nanoaodFlatTable_*Table_*_*',
                                             'drop nanoaodFlatTable_caloMetTable_*_*',
                                             'drop nanoaodFlatTable_fatJetTable_*_*',
-                                            # 'drop nanoaodFlatTable_genJet*_*_*',
-                                            # 'drop nanoaodFlatTable_genSubJet*_*_*',
+                                            'drop nanoaodFlatTable_genJet*_*_*',
+                                            'drop nanoaodFlatTable_genSubJet*_*_*',
+                                            'drop nanoaodFlatTable_genWeights*_*_*',
                                             # 'drop nanoaodFlatTable_jet*_*_*',
                                             # 'drop nanoaodFlatTable_met*_*_*',
                                             'drop nanoaodFlatTable_puppiMetTable_*_*',
