@@ -1,5 +1,3 @@
-
-#ifdef non_saltare_questammerda
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
@@ -54,14 +52,6 @@ private:
 
     virtual void produce(edm::Event&, const edm::EventSetup&);
 
-    bool MuMuVertexRefitting(const pat::Muon & muon1,
-			     const pat::Muon & muon2,
-			     edm::ESHandle<TransientTrackBuilder> theTTBuilder,
-			     RefCountedKinematicVertex &refitVertex,
-			     RefCountedKinematicParticle &refitMuMu,
-			     RefCountedKinematicParticle &refitMu1,
-			     RefCountedKinematicParticle &refitMu2);
-
     bool KstVertexRefitting(const pat::PackedCandidate &kaon,
 			    const pat::PackedCandidate &pion,
 			    edm::ESHandle<TransientTrackBuilder> theTTBuilder,
@@ -69,35 +59,6 @@ private:
 			    RefCountedKinematicParticle &refitKst,
 			    RefCountedKinematicParticle &refitKaon,
 			    RefCountedKinematicParticle &refitPion);
-
-    bool BToKstMuMuVertexRefitting(const pat::Muon &muon1,
-                                   const pat::Muon &muon2,
-                                   const RefCountedKinematicParticle refitKPi,
-                                   edm::ESHandle<TransientTrackBuilder> theTTBuilder,
-                                   RefCountedKinematicVertex &refitVertex,
-                                   RefCountedKinematicParticle &refitBToKstMuMu,
-                                   RefCountedKinematicParticle &refitMu1,
-                                   RefCountedKinematicParticle &refitMu2,
-                                   RefCountedKinematicParticle &refitKst);
-
-    bool BToKPiMuMuVertexRefitting(const pat::Muon &muon1,
-                                   const pat::Muon &muon2,
-                                   const pat::PackedCandidate &kaon,
-                                   const pat::PackedCandidate &pion,
-                                   edm::ESHandle<TransientTrackBuilder> theTTBuilder,
-                                   RefCountedKinematicVertex &refitVertex,
-                                   RefCountedKinematicParticle &refitBToKstMuMu,
-                                   RefCountedKinematicParticle &refitMu1,
-                                   RefCountedKinematicParticle &refitMu2,
-                                   RefCountedKinematicParticle &refitKaon,
-                                   RefCountedKinematicParticle &refitPion);
-
-    bool BToKstJPsiMuMuVertexRefitting(const RefCountedKinematicParticle refitMuMu,
-                                       const RefCountedKinematicParticle refitKPi,
-                                       RefCountedKinematicVertex &refitVertex,
-                                       RefCountedKinematicParticle &refitBToKstJPsiMuMu,
-                                       RefCountedKinematicParticle &refitJPsi,
-                                       RefCountedKinematicParticle &refitKst);
 
 
     pair<double,double> computeLS(RefCountedKinematicVertex refitVertex,
@@ -113,25 +74,26 @@ private:
 
     // ----------member data ---------------------------
 
-    edm::EDGetTokenT<reco::BeamSpot> beamSpotSrc_;
-    edm::EDGetTokenT<reco::VertexCollection> vertexSrc_;
-    edm::EDGetTokenT<std::vector<pat::Muon>> muonSrc_;
-    edm::EDGetTokenT<edm::View<pat::PackedCandidate>> PFCandSrc_;
+    edm::EDGetTokenT beamSpotSrc_;
+    edm::EDGetTokenT PFCandSrc_;
+    edm::EDGetTokenT vertexSrc_;
+    edm::EDGetTokenT muonSrc_;
+    // edm::EDGetTokenT<reco::BeamSpot> beamSpotSrc_;
+    // edm::EDGetTokenT<edm::View<pat::PackedCandidate>> PFCandSrc_;
+    // edm::EDGetTokenT<reco::VertexCollection> vertexSrc_;
+    // edm::EDGetTokenT<std::vector<pat::Muon>> muonSrc_;
 
-    double ptMinMu_;
-    double etaMaxMu_;
-    double ptMinKaon_;
-    double etaMaxKaon_;
-    double DCASigMinKaon_;
-    double ptMinPion_;
-    double etaMaxPion_;
-    double DCASigMinPion_;
-    bool diMuonCharge_;
-    bool KstCharge_;
-    double JPsiMassConstraint_;
-    double KstMassConstraint_;
-    bool save2TrkRefit_;
-    bool save4TrkRefit_;
+    edm::EDGetTokenT triggerBitsSrc_;
+    edm::EDGetTokenT triggerObjectsSrc_;
+
+    // double ptMinMu_;
+    // double etaMaxMu_;
+    // double ptMinKaon_;
+    // double etaMaxKaon_;
+    // double DCASigMinKaon_;
+    // double ptMinPion_;
+    // double etaMaxPion_;
+    // double DCASigMinPion_;
 
     float MuonMass_ = 0.10565837;
     float MuonMassErr_ = 3.5*1e-9;
@@ -139,10 +101,8 @@ private:
     float KaonMassErr_ = 1.6e-5;
     float PionMass_ = 0.139570;
     float PionMassErr_ = 3.5e-7;
-    //float JPsiMass_ = 3.096916;  //Configurable parameter
-    float JPsiMassErr_ = 0.011;
-    //float KstMass_ = 0.89176;  //Configurable parameter
-    float KstMassErr_ = 0.25e-3;
+    float D0Mass_ = 1864.83;
+    float D0MassErr_ = 0.05;
 
 };
 
@@ -150,34 +110,23 @@ private:
 
 BuToD0munuToKPimunuProducer::BuToD0munuToKPimunuProducer(const edm::ParameterSet &iConfig):
   beamSpotSrc_( consumes<reco::BeamSpot> ( iConfig.getParameter<edm::InputTag>( "beamSpot" ) ) ),
+  PFCandSrc_( consumes<edm::View<pat::PackedCandidate>> ( iConfig.getParameter<edm::InputTag>( "PFCandCollection" ) ) ),
   vertexSrc_( consumes<reco::VertexCollection> ( iConfig.getParameter<edm::InputTag>( "vertexCollection" ) ) ),
   muonSrc_( consumes<std::vector<pat::Muon>> ( iConfig.getParameter<edm::InputTag>( "muonCollection" ) ) ),
-  PFCandSrc_( consumes<edm::View<pat::PackedCandidate>> ( iConfig.getParameter<edm::InputTag>( "PFCandCollection" ) ) ),
-  ptMinMu_( iConfig.getParameter<double>( "MuonMinPt" ) ),
-  etaMaxMu_( iConfig.getParameter<double>( "MuonMaxEta" ) ),
-  ptMinKaon_( iConfig.getParameter<double>( "KaonMinPt" ) ),
-  etaMaxKaon_( iConfig.getParameter<double>( "KaonMaxEta" ) ),
-  DCASigMinKaon_( iConfig.getParameter<double>( "KaonMinDCASig" ) ),
-  ptMinPion_( iConfig.getParameter<double>( "PionMinPt" ) ),
-  etaMaxPion_( iConfig.getParameter<double>( "PionMaxEta" ) ),
-  DCASigMinPion_( iConfig.getParameter<double>( "PionMinDCASig" ) ),
-  diMuonCharge_( iConfig.getParameter<bool>( "DiMuonChargeCheck" ) ),
-  KstCharge_( iConfig.getParameter<bool>( "KstarChargeCheck" ) ),
-  JPsiMassConstraint_( iConfig.getParameter<double>( "JPsiMassConstraint" ) ),
-  KstMassConstraint_( iConfig.getParameter<double>( "KstMassConstraint" ) ),
-  save2TrkRefit_( iConfig.getParameter<bool>( "save2TrackRefit" ) ),
-  save4TrkRefit_( iConfig.getParameter<bool>( "save4TrackRefit" ) )
+  triggerBitsSrc_(consumes(iConfig.getParameter("triggerBits"))),
+  triggerObjectsSrc_(consumes(iConfig.getParameter("triggerObjects")))
+  // ptMinMu_( iConfig.getParameter<double>( "PtMinMu" ) )
 {
-    produces<pat::CompositeCandidateCollection>();
+  produces<pat::CompositeCandidateCollection>();
 }
 
 
 void BuToD0munuToKPimunuProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
 
     edm::ESHandle<MagneticField> bFieldHandle;
-    edm::ESHandle<TransientTrackBuilder> theTTBuilder;
-
     iSetup.get<IdealMagneticFieldRecord>().get(bFieldHandle);
+
+    edm::ESHandle<TransientTrackBuilder> theTTBuilder;
     iSetup.get<TransientTrackRecord>().get("TransientTrackBuilder",theTTBuilder);
 
     edm::Handle<reco::BeamSpot> beamSpotHandle;
@@ -187,7 +136,11 @@ void BuToD0munuToKPimunuProducer::produce(edm::Event& iEvent, const edm::EventSe
     }
     reco::BeamSpot beamSpot = *beamSpotHandle;
 
-    edm::Handle<reco::VertexCollection> vertexHandle;
+    edm::Handle<vector<pat::PackedCandidate>> pfCandHandle;
+    iEvent.getByToken(PFCandSrc_, pfCandHandle);
+    unsigned int pfCandNumber = pfCandHandle->size();
+
+    edm::Handle<vector<reco::Vertex>> vertexHandle;
     iEvent.getByToken(vertexSrc_, vertexHandle);
     const reco::Vertex & PV = vertexHandle->front();
 
@@ -195,16 +148,15 @@ void BuToD0munuToKPimunuProducer::produce(edm::Event& iEvent, const edm::EventSe
     iEvent.getByToken(muonSrc_, muonHandle);
     unsigned int muonNumber = muonHandle->size();
 
-    edm::Handle<edm::View<pat::PackedCandidate>> pfCandHandle;
-    iEvent.getByToken(PFCandSrc_, pfCandHandle);
-    unsigned int pfCandNumber = pfCandHandle->size();
+    edm::Handle triggerBitsHandle;
+    iEvent.getByToken(triggerBitsSrc_, triggerBitsHandle);
+
+    edm::Handle triggerObjectsHandle;
+    iEvent.getByToken(triggerObjectsSrc_, triggerObjectsHandle);
+
 
     // Output collection
     std::unique_ptr<pat::CompositeCandidateCollection> result( new pat::CompositeCandidateCollection );
-
-    if (MC) {
-      // guarda variabili gen
-    }
 
     // loop on all the mumuKpi quadruplets
     for (unsigned int i = 0; i < muonNumber; ++i) {
@@ -466,52 +418,6 @@ void BuToD0munuToKPimunuProducer::produce(edm::Event& iEvent, const edm::EventSe
 }
 
 
-
-bool BuToD0munuToKPimunuProducer::MuMuVertexRefitting(const pat::Muon & muon1,
-					     const pat::Muon & muon2,
-					     edm::ESHandle<TransientTrackBuilder> theTTBuilder,
-					     RefCountedKinematicVertex &refitVertex,
-					     RefCountedKinematicParticle &refitMuMu,
-					     RefCountedKinematicParticle &refitMuon1,
-					     RefCountedKinematicParticle &refitMuon2){
-
-    const reco::TransientTrack muon1TT = theTTBuilder->build(muon1.innerTrack());
-    const reco::TransientTrack muon2TT = theTTBuilder->build(muon2.innerTrack());
-
-    KinematicParticleFactoryFromTransientTrack partFactory;
-    KinematicParticleVertexFitter PartVtxFitter;
-
-    std::vector<RefCountedKinematicParticle> muParticles;
-    double chi = 0.;
-    double ndf = 0.;
-    muParticles.push_back(partFactory.particle(muon1TT,MuonMass_,chi,ndf,MuonMassErr_));
-    muParticles.push_back(partFactory.particle(muon2TT,MuonMass_,chi,ndf,MuonMassErr_));
-    RefCountedKinematicTree mumuVertexFitTree = PartVtxFitter.fit(muParticles);
-
-    if ( !mumuVertexFitTree->isValid()) return false;
-
-    mumuVertexFitTree->movePointerToTheTop();
-    refitVertex = mumuVertexFitTree->currentDecayVertex();
-    refitMuMu = mumuVertexFitTree->currentParticle();
-
-    if ( !refitVertex->vertexIsValid()) return false;
-
-    // extract the re-fitted tracks
-    mumuVertexFitTree->movePointerToTheTop();
-
-    mumuVertexFitTree->movePointerToTheFirstChild();
-    refitMuon1 = mumuVertexFitTree->currentParticle();
-
-    mumuVertexFitTree->movePointerToTheNextChild();
-    refitMuon2 = mumuVertexFitTree->currentParticle();
-
-    return true;
-
-}
-
-
-
-
 bool BuToD0munuToKPimunuProducer::KstVertexRefitting(const pat::PackedCandidate &kaon,
 					    const pat::PackedCandidate &pion,
 					    edm::ESHandle<TransientTrackBuilder> theTTBuilder,
@@ -556,187 +462,187 @@ bool BuToD0munuToKPimunuProducer::KstVertexRefitting(const pat::PackedCandidate 
 
 
 
-
-bool BuToD0munuToKPimunuProducer::BToKstMuMuVertexRefitting(const pat::Muon &muon1,
-						   const pat::Muon &muon2,
-						   const RefCountedKinematicParticle refitKPi,
-						   edm::ESHandle<TransientTrackBuilder> theTTBuilder,
-						   RefCountedKinematicVertex &refitVertex,
-						   RefCountedKinematicParticle &refitBToKstMuMu,
-						   RefCountedKinematicParticle &refitMuon1,
-						   RefCountedKinematicParticle &refitMuon2,
-						   RefCountedKinematicParticle &refitKst){
-
-    const reco::TransientTrack muon1TT = theTTBuilder->build(muon1.innerTrack());
-    const reco::TransientTrack muon2TT = theTTBuilder->build(muon2.innerTrack());
-    const reco::TransientTrack KPiTT = refitKPi->refittedTransientTrack();
-
-    KinematicParticleFactoryFromTransientTrack partFactory;
-    KinematicParticleVertexFitter PartVtxFitter;
-
-    float Kst_mass = refitKPi->currentState().mass();
-    float Kst_mass_err = sqrt(refitKPi->currentState().kinematicParametersError().matrix()(6,6));
-    if(KstMassConstraint_ > 0){
-      Kst_mass = KstMassConstraint_;
-      Kst_mass_err = KstMassErr_;
-    }
-
-    std::vector<RefCountedKinematicParticle> BToKstMuMuParticles;
-    double chi = 0.;
-    double ndf = 0.;
-    BToKstMuMuParticles.push_back(partFactory.particle(muon1TT,MuonMass_,chi,ndf,MuonMassErr_));
-    BToKstMuMuParticles.push_back(partFactory.particle(muon2TT,MuonMass_,chi,ndf,MuonMassErr_));
-    BToKstMuMuParticles.push_back(partFactory.particle(KPiTT,Kst_mass,chi,ndf,Kst_mass_err));
-
-    RefCountedKinematicTree BToKstMuMuVertexFitTree = PartVtxFitter.fit(BToKstMuMuParticles);
-
-    if ( !BToKstMuMuVertexFitTree->isValid()) return false;
-
-    BToKstMuMuVertexFitTree->movePointerToTheTop();
-    refitVertex = BToKstMuMuVertexFitTree->currentDecayVertex();
-    refitBToKstMuMu = BToKstMuMuVertexFitTree->currentParticle();
-
-    if ( !refitVertex->vertexIsValid()) return false;
-
-    // extract the re-fitted tracks
-    BToKstMuMuVertexFitTree->movePointerToTheTop();
-
-    BToKstMuMuVertexFitTree->movePointerToTheFirstChild();
-    refitMuon1 = BToKstMuMuVertexFitTree->currentParticle();
-
-    BToKstMuMuVertexFitTree->movePointerToTheNextChild();
-    refitMuon2 = BToKstMuMuVertexFitTree->currentParticle();
-
-    BToKstMuMuVertexFitTree->movePointerToTheNextChild();
-    refitKst = BToKstMuMuVertexFitTree->currentParticle();
-
-    return true;
-
-}
-
-
-
-
-bool BuToD0munuToKPimunuProducer::BToKPiMuMuVertexRefitting(const pat::Muon &muon1,
-						   const pat::Muon &muon2,
-						   const pat::PackedCandidate &kaon,
-						   const pat::PackedCandidate &pion,
-						   edm::ESHandle<TransientTrackBuilder> theTTBuilder,
-						   RefCountedKinematicVertex &refitVertex,
-						   RefCountedKinematicParticle &refitBToKstMuMu,
-						   RefCountedKinematicParticle &refitMuon1,
-						   RefCountedKinematicParticle &refitMuon2,
-						   RefCountedKinematicParticle &refitKaon,
-						   RefCountedKinematicParticle &refitPion){
-
-    const reco::TransientTrack muon1TT = theTTBuilder->build(muon1.innerTrack());
-    const reco::TransientTrack muon2TT = theTTBuilder->build(muon2.innerTrack());
-    const reco::TransientTrack kaonTT = theTTBuilder->build(kaon.bestTrack());
-    const reco::TransientTrack pionTT = theTTBuilder->build(pion.bestTrack());
-
-    KinematicParticleFactoryFromTransientTrack partFactory;
-    KinematicParticleVertexFitter PartVtxFitter;
-
-    std::vector<RefCountedKinematicParticle> BToKstMuMuParticles;
-    double chi = 0.;
-    double ndf = 0.;
-    BToKstMuMuParticles.push_back(partFactory.particle(muon1TT,MuonMass_,chi,ndf,MuonMassErr_));
-    BToKstMuMuParticles.push_back(partFactory.particle(muon2TT,MuonMass_,chi,ndf,MuonMassErr_));
-    BToKstMuMuParticles.push_back(partFactory.particle(kaonTT,KaonMass_,chi,ndf,KaonMassErr_));
-    BToKstMuMuParticles.push_back(partFactory.particle(pionTT,PionMass_,chi,ndf,PionMassErr_));
-
-    RefCountedKinematicTree BToKstMuMuVertexFitTree = PartVtxFitter.fit(BToKstMuMuParticles);
-
-    if ( !BToKstMuMuVertexFitTree->isValid()) return false;
-
-    BToKstMuMuVertexFitTree->movePointerToTheTop();
-    refitVertex = BToKstMuMuVertexFitTree->currentDecayVertex();
-    refitBToKstMuMu = BToKstMuMuVertexFitTree->currentParticle();
-
-    if ( !refitVertex->vertexIsValid()) return false;
-
-    // extract the re-fitted tracks
-    BToKstMuMuVertexFitTree->movePointerToTheTop();
-
-    BToKstMuMuVertexFitTree->movePointerToTheFirstChild();
-    refitMuon1 = BToKstMuMuVertexFitTree->currentParticle();
-
-    BToKstMuMuVertexFitTree->movePointerToTheNextChild();
-    refitMuon2 = BToKstMuMuVertexFitTree->currentParticle();
-
-    BToKstMuMuVertexFitTree->movePointerToTheNextChild();
-    refitKaon = BToKstMuMuVertexFitTree->currentParticle();
-
-    BToKstMuMuVertexFitTree->movePointerToTheNextChild();
-    refitPion = BToKstMuMuVertexFitTree->currentParticle();
-
-    return true;
-
-
-
-}
-
-
-
-bool BuToD0munuToKPimunuProducer::BToKstJPsiMuMuVertexRefitting(const RefCountedKinematicParticle refitMuMu,
-						       const RefCountedKinematicParticle refitKPi,
-						       RefCountedKinematicVertex &refitVertex,
-						       RefCountedKinematicParticle &refitBToKstJPsiMuMu,
-						       RefCountedKinematicParticle &refitJPsi,
-						       RefCountedKinematicParticle &refitKst){
-
-  const reco::TransientTrack MuMuTT = refitMuMu->refittedTransientTrack();
-  const reco::TransientTrack KPiTT = refitKPi->refittedTransientTrack();
-
-  KinematicParticleFactoryFromTransientTrack partFactory;
-  KinematicParticleVertexFitter PartVtxFitter;
-
-  std::vector<RefCountedKinematicParticle> BToKstMuMuParticles;
-  double chi = 0.;
-  double ndf = 0.;
-
-  float MuMu_mass = refitMuMu->currentState().mass();
-  float MuMu_mass_err = sqrt(refitMuMu->currentState().kinematicParametersError().matrix()(6,6));
-  if(JPsiMassConstraint_ > 0){
-    MuMu_mass = JPsiMassConstraint_;
-    MuMu_mass_err = JPsiMassErr_;
-  }
-
-  float Kst_mass = refitKPi->currentState().mass();
-  float Kst_mass_err = sqrt(refitKPi->currentState().kinematicParametersError().matrix()(6,6));
-  if(KstMassConstraint_ > 0){
-    Kst_mass = KstMassConstraint_;
-    Kst_mass_err = KstMassErr_;
-  }
-
-  BToKstMuMuParticles.push_back(partFactory.particle(MuMuTT,MuMu_mass,chi,ndf,MuMu_mass_err));
-  BToKstMuMuParticles.push_back(partFactory.particle(KPiTT,Kst_mass,chi,ndf,Kst_mass_err));
-
-  RefCountedKinematicTree BToKstMuMuVertexFitTree = PartVtxFitter.fit(BToKstMuMuParticles);
-
-  if ( !BToKstMuMuVertexFitTree->isValid()) return false;
-
-  BToKstMuMuVertexFitTree->movePointerToTheTop();
-  refitVertex = BToKstMuMuVertexFitTree->currentDecayVertex();
-  refitBToKstJPsiMuMu = BToKstMuMuVertexFitTree->currentParticle();
-
-  if ( !refitVertex->vertexIsValid()) return false;
-
-  // extract the re-fitted tracks
-  BToKstMuMuVertexFitTree->movePointerToTheTop();
-
-  BToKstMuMuVertexFitTree->movePointerToTheFirstChild();
-  refitJPsi = BToKstMuMuVertexFitTree->currentParticle();
-
-  BToKstMuMuVertexFitTree->movePointerToTheNextChild();
-  refitKst = BToKstMuMuVertexFitTree->currentParticle();
-
-  return true;
-
-
-
-}
-
+//
+// bool BuToD0munuToKPimunuProducer::BToKstMuMuVertexRefitting(const pat::Muon &muon1,
+// 						   const pat::Muon &muon2,
+// 						   const RefCountedKinematicParticle refitKPi,
+// 						   edm::ESHandle<TransientTrackBuilder> theTTBuilder,
+// 						   RefCountedKinematicVertex &refitVertex,
+// 						   RefCountedKinematicParticle &refitBToKstMuMu,
+// 						   RefCountedKinematicParticle &refitMuon1,
+// 						   RefCountedKinematicParticle &refitMuon2,
+// 						   RefCountedKinematicParticle &refitKst){
+//
+//     const reco::TransientTrack muon1TT = theTTBuilder->build(muon1.innerTrack());
+//     const reco::TransientTrack muon2TT = theTTBuilder->build(muon2.innerTrack());
+//     const reco::TransientTrack KPiTT = refitKPi->refittedTransientTrack();
+//
+//     KinematicParticleFactoryFromTransientTrack partFactory;
+//     KinematicParticleVertexFitter PartVtxFitter;
+//
+//     float Kst_mass = refitKPi->currentState().mass();
+//     float Kst_mass_err = sqrt(refitKPi->currentState().kinematicParametersError().matrix()(6,6));
+//     if(KstMassConstraint_ > 0){
+//       Kst_mass = KstMassConstraint_;
+//       Kst_mass_err = KstMassErr_;
+//     }
+//
+//     std::vector<RefCountedKinematicParticle> BToKstMuMuParticles;
+//     double chi = 0.;
+//     double ndf = 0.;
+//     BToKstMuMuParticles.push_back(partFactory.particle(muon1TT,MuonMass_,chi,ndf,MuonMassErr_));
+//     BToKstMuMuParticles.push_back(partFactory.particle(muon2TT,MuonMass_,chi,ndf,MuonMassErr_));
+//     BToKstMuMuParticles.push_back(partFactory.particle(KPiTT,Kst_mass,chi,ndf,Kst_mass_err));
+//
+//     RefCountedKinematicTree BToKstMuMuVertexFitTree = PartVtxFitter.fit(BToKstMuMuParticles);
+//
+//     if ( !BToKstMuMuVertexFitTree->isValid()) return false;
+//
+//     BToKstMuMuVertexFitTree->movePointerToTheTop();
+//     refitVertex = BToKstMuMuVertexFitTree->currentDecayVertex();
+//     refitBToKstMuMu = BToKstMuMuVertexFitTree->currentParticle();
+//
+//     if ( !refitVertex->vertexIsValid()) return false;
+//
+//     // extract the re-fitted tracks
+//     BToKstMuMuVertexFitTree->movePointerToTheTop();
+//
+//     BToKstMuMuVertexFitTree->movePointerToTheFirstChild();
+//     refitMuon1 = BToKstMuMuVertexFitTree->currentParticle();
+//
+//     BToKstMuMuVertexFitTree->movePointerToTheNextChild();
+//     refitMuon2 = BToKstMuMuVertexFitTree->currentParticle();
+//
+//     BToKstMuMuVertexFitTree->movePointerToTheNextChild();
+//     refitKst = BToKstMuMuVertexFitTree->currentParticle();
+//
+//     return true;
+//
+// }
+//
+//
+//
+//
+// bool BuToD0munuToKPimunuProducer::BToKPiMuMuVertexRefitting(const pat::Muon &muon1,
+// 						   const pat::Muon &muon2,
+// 						   const pat::PackedCandidate &kaon,
+// 						   const pat::PackedCandidate &pion,
+// 						   edm::ESHandle<TransientTrackBuilder> theTTBuilder,
+// 						   RefCountedKinematicVertex &refitVertex,
+// 						   RefCountedKinematicParticle &refitBToKstMuMu,
+// 						   RefCountedKinematicParticle &refitMuon1,
+// 						   RefCountedKinematicParticle &refitMuon2,
+// 						   RefCountedKinematicParticle &refitKaon,
+// 						   RefCountedKinematicParticle &refitPion){
+//
+//     const reco::TransientTrack muon1TT = theTTBuilder->build(muon1.innerTrack());
+//     const reco::TransientTrack muon2TT = theTTBuilder->build(muon2.innerTrack());
+//     const reco::TransientTrack kaonTT = theTTBuilder->build(kaon.bestTrack());
+//     const reco::TransientTrack pionTT = theTTBuilder->build(pion.bestTrack());
+//
+//     KinematicParticleFactoryFromTransientTrack partFactory;
+//     KinematicParticleVertexFitter PartVtxFitter;
+//
+//     std::vector<RefCountedKinematicParticle> BToKstMuMuParticles;
+//     double chi = 0.;
+//     double ndf = 0.;
+//     BToKstMuMuParticles.push_back(partFactory.particle(muon1TT,MuonMass_,chi,ndf,MuonMassErr_));
+//     BToKstMuMuParticles.push_back(partFactory.particle(muon2TT,MuonMass_,chi,ndf,MuonMassErr_));
+//     BToKstMuMuParticles.push_back(partFactory.particle(kaonTT,KaonMass_,chi,ndf,KaonMassErr_));
+//     BToKstMuMuParticles.push_back(partFactory.particle(pionTT,PionMass_,chi,ndf,PionMassErr_));
+//
+//     RefCountedKinematicTree BToKstMuMuVertexFitTree = PartVtxFitter.fit(BToKstMuMuParticles);
+//
+//     if ( !BToKstMuMuVertexFitTree->isValid()) return false;
+//
+//     BToKstMuMuVertexFitTree->movePointerToTheTop();
+//     refitVertex = BToKstMuMuVertexFitTree->currentDecayVertex();
+//     refitBToKstMuMu = BToKstMuMuVertexFitTree->currentParticle();
+//
+//     if ( !refitVertex->vertexIsValid()) return false;
+//
+//     // extract the re-fitted tracks
+//     BToKstMuMuVertexFitTree->movePointerToTheTop();
+//
+//     BToKstMuMuVertexFitTree->movePointerToTheFirstChild();
+//     refitMuon1 = BToKstMuMuVertexFitTree->currentParticle();
+//
+//     BToKstMuMuVertexFitTree->movePointerToTheNextChild();
+//     refitMuon2 = BToKstMuMuVertexFitTree->currentParticle();
+//
+//     BToKstMuMuVertexFitTree->movePointerToTheNextChild();
+//     refitKaon = BToKstMuMuVertexFitTree->currentParticle();
+//
+//     BToKstMuMuVertexFitTree->movePointerToTheNextChild();
+//     refitPion = BToKstMuMuVertexFitTree->currentParticle();
+//
+//     return true;
+//
+//
+//
+// }
+//
+//
+//
+// bool BuToD0munuToKPimunuProducer::BToKstJPsiMuMuVertexRefitting(const RefCountedKinematicParticle refitMuMu,
+// 						       const RefCountedKinematicParticle refitKPi,
+// 						       RefCountedKinematicVertex &refitVertex,
+// 						       RefCountedKinematicParticle &refitBToKstJPsiMuMu,
+// 						       RefCountedKinematicParticle &refitJPsi,
+// 						       RefCountedKinematicParticle &refitKst){
+//
+//   const reco::TransientTrack MuMuTT = refitMuMu->refittedTransientTrack();
+//   const reco::TransientTrack KPiTT = refitKPi->refittedTransientTrack();
+//
+//   KinematicParticleFactoryFromTransientTrack partFactory;
+//   KinematicParticleVertexFitter PartVtxFitter;
+//
+//   std::vector<RefCountedKinematicParticle> BToKstMuMuParticles;
+//   double chi = 0.;
+//   double ndf = 0.;
+//
+//   float MuMu_mass = refitMuMu->currentState().mass();
+//   float MuMu_mass_err = sqrt(refitMuMu->currentState().kinematicParametersError().matrix()(6,6));
+//   if(JPsiMassConstraint_ > 0){
+//     MuMu_mass = JPsiMassConstraint_;
+//     MuMu_mass_err = JPsiMassErr_;
+//   }
+//
+//   float Kst_mass = refitKPi->currentState().mass();
+//   float Kst_mass_err = sqrt(refitKPi->currentState().kinematicParametersError().matrix()(6,6));
+//   if(KstMassConstraint_ > 0){
+//     Kst_mass = KstMassConstraint_;
+//     Kst_mass_err = KstMassErr_;
+//   }
+//
+//   BToKstMuMuParticles.push_back(partFactory.particle(MuMuTT,MuMu_mass,chi,ndf,MuMu_mass_err));
+//   BToKstMuMuParticles.push_back(partFactory.particle(KPiTT,Kst_mass,chi,ndf,Kst_mass_err));
+//
+//   RefCountedKinematicTree BToKstMuMuVertexFitTree = PartVtxFitter.fit(BToKstMuMuParticles);
+//
+//   if ( !BToKstMuMuVertexFitTree->isValid()) return false;
+//
+//   BToKstMuMuVertexFitTree->movePointerToTheTop();
+//   refitVertex = BToKstMuMuVertexFitTree->currentDecayVertex();
+//   refitBToKstJPsiMuMu = BToKstMuMuVertexFitTree->currentParticle();
+//
+//   if ( !refitVertex->vertexIsValid()) return false;
+//
+//   // extract the re-fitted tracks
+//   BToKstMuMuVertexFitTree->movePointerToTheTop();
+//
+//   BToKstMuMuVertexFitTree->movePointerToTheFirstChild();
+//   refitJPsi = BToKstMuMuVertexFitTree->currentParticle();
+//
+//   BToKstMuMuVertexFitTree->movePointerToTheNextChild();
+//   refitKst = BToKstMuMuVertexFitTree->currentParticle();
+//
+//   return true;
+//
+//
+//
+// }
+//
 
 
 
@@ -787,9 +693,6 @@ double BuToD0munuToKPimunuProducer::computeCosAlpha(RefCountedKinematicParticle 
 
 
 
-
-
-
 pair<double,double> BuToD0munuToKPimunuProducer::computeDCA(const pat::PackedCandidate &kaon,
 						   edm::ESHandle<MagneticField> bFieldHandle,
 						   reco::BeamSpot beamSpot){
@@ -812,5 +715,3 @@ pair<double,double> BuToD0munuToKPimunuProducer::computeDCA(const pat::PackedCan
 
 
 DEFINE_FWK_MODULE(BuToD0munuToKPimunuProducer);
-
-#endif

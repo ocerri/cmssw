@@ -49,5 +49,15 @@ BuToD0munuToKPimunuMCTruthTable=cms.EDProducer("SimpleCandidateFlatTableProducer
                                 )
                              )
 
-# BuToD0munuToKPimunuMCSequence=cms.Sequence(BuToD0munuToKPimunuMCTruth)
+
+BuToD0munuToKPimunu=cms.EDProducer("BuToD0munuToKPimunuProducer",
+                        beamSpot=cms.InputTag("offlineBeamSpot"),
+                        PFCandCollection=cms.InputTag("packedPFCandidates"),
+                        vertexCollection=cms.InputTag("offlineSlimmedPrimaryVertices"),
+                        muonCollection = cms.InputTag("slimmedMuons","", "PAT"),
+                        triggerBits = cms.InputTag("TriggerResults","","HLT"),
+                        triggerObjects = cms.InputTag("slimmedPatTrigger"),
+                        # PtMinMu=cms.double(2.),
+                        )
+
 BuToD0munuToKPimunuMCSequence=cms.Sequence(BuToD0munuToKPimunuMCTruth + BuToD0munuToKPimunuMCTruthTable)
