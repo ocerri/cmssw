@@ -22,14 +22,23 @@ process.load('Configuration.StandardSequences.EndOfProcess_cff')
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 
 process.maxEvents = cms.untracked.PSet(
+    # input = cms.untracked.int32(100)
     input = cms.untracked.int32(-1)
 )
 
 # Input source
+from glob import glob
+flist = glob('/eos/user/o/ocerri/BPhysics/data/cmsMC_private/HardQCD_bbar_Bu_D0munu_KPimunu_NoPU_10-2-3_v0/jobs_out/*MINIAODSIM*.root')
+for i in range(len(flist)):
+    flist[i] = 'file:' + flist[i]
+
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('file:/eos/user/o/ocerri/BPhysics/data/cmsMC_private/HardQCD_bbar_Bu_D0munu_KPimunu_NoPU_10-2-3_v0/HardQCD_bbar_Bu_D0munu_KPimunu_MINIAODSIM.root'),
+    fileNames = cms.untracked.vstring(tuple(flist)),
+    # fileNames = cms.untracked.vstring('file:/eos/user/o/ocerri/BPhysics/data/cmsMC_private/HardQCD_bbar_Bu_D0munu_KPimunu_NoPU_10-2-3_v0/HardQCD_bbar_Bu_D0munu_KPimunu_MINIAODSIM.root'),
     secondaryFileNames = cms.untracked.vstring()
 )
+
+process.source.duplicateCheckMode = cms.untracked.string('noDuplicateCheck')
 
 process.options = cms.untracked.PSet(
 
@@ -52,7 +61,8 @@ process.NANOAODSIMoutput = cms.OutputModule("NanoAODOutputModule",
         dataTier = cms.untracked.string('NANOAODSIM'),
         filterName = cms.untracked.string('')
     ),
-    fileName = cms.untracked.string('file:/eos/user/o/ocerri/BPhysics/data/cmsMC_private/HardQCD_bbar_Bu_D0munu_KPimunu_NoPU_10-2-3_v0/HardQCD_bbar_Bu_D0munu_KPimunu_NANOAODSIM.root'),
+    fileName = cms.untracked.string('file:/eos/user/o/ocerri/BPhysics/data/cmsMC_private/HardQCD_bbar_Bu_D0munu_KPimunu_NoPU_10-2-3_v0/jobs_out/HardQCD_bbar_Bu_D0munu_KPimunu_NANOAODSIM_all.root'),
+    # fileName = cms.untracked.string('file:/eos/user/o/ocerri/BPhysics/data/cmsMC_private/HardQCD_bbar_Bu_D0munu_KPimunu_NoPU_10-2-3_v0/HardQCD_bbar_Bu_D0munu_KPimunu_NANOAODSIM.root'),
     # outputCommands = process.NANOAODSIMEventContent.outputCommands
     outputCommands = cms.untracked.vstring(
                                             'drop *',
@@ -68,7 +78,7 @@ process.NANOAODSIMoutput = cms.OutputModule("NanoAODOutputModule",
                                             'drop nanoaodFlatTable_rivet*Table_*_*',
                                             'drop nanoaodFlatTable_subJetTable_*_*',
                                             'drop nanoaodFlatTable_ttbarCategoryTable_*_*',
-                                            'keep edmTriggerResults_*_*_HLT',
+                                            # 'keep edmTriggerResults_*_*_HLT',
                                             # 'keep nanoaodMergeableCounterTable_*Table_*_*',
                                             # 'keep nanoaodUniqueString_nanoMetadata_*_*'
                                             )
@@ -82,6 +92,7 @@ process.GlobalTag = GlobalTag(process.GlobalTag, '102X_upgrade2018_realistic_v12
 
 # Path and EndPath definitions
 process.load('PhysicsTools.NanoAOD.BuToD0munuToKPimunu_cff')
+process.nanoSequenceMC.insert(-1, process.BuToD0munuToKPimunuRECOSequence)
 process.nanoSequenceMC.insert(-1, process.BuToD0munuToKPimunuMCSequence)
 
 process.nanoAOD_step = cms.Path(process.nanoSequenceMC)

@@ -19,7 +19,7 @@ class SimpleFlatTableProducerBase : public edm::stream::EDProducer<> {
             name_( params.getParameter<std::string>("name") ),
             doc_(params.existsAs<std::string>("doc") ? params.getParameter<std::string>("doc") : ""),
             extension_(params.existsAs<bool>("extension") ? params.getParameter<bool>("extension") : false),
-            src_(consumes<TProd>( params.getParameter<edm::InputTag>("src") )) 
+            src_(consumes<TProd>( params.getParameter<edm::InputTag>("src") ))
         {
             edm::ParameterSet const & varsPSet = params.getParameter<edm::ParameterSet>("variables");
             for (const std::string & vname : varsPSet.getParameterNamesForType<edm::ParameterSet>()) {
@@ -52,14 +52,14 @@ class SimpleFlatTableProducerBase : public edm::stream::EDProducer<> {
         }
 
     protected:
-        const std::string name_; 
+        const std::string name_;
         const std::string doc_;
         const bool extension_;
         const edm::EDGetTokenT<TProd> src_;
 
         class VariableBase {
             public:
-                VariableBase(const std::string & aname, nanoaod::FlatTable::ColumnType atype, const edm::ParameterSet & cfg) : 
+                VariableBase(const std::string & aname, nanoaod::FlatTable::ColumnType atype, const edm::ParameterSet & cfg) :
                     name_(aname), doc_(cfg.getParameter<std::string>("doc")), type_(atype),
 		    precision_(cfg.existsAs<int>("precision") ? cfg.getParameter<int>("precision") : -1)
             {
@@ -74,7 +74,7 @@ class SimpleFlatTableProducerBase : public edm::stream::EDProducer<> {
         };
         class Variable : public VariableBase {
             public:
-                Variable(const std::string & aname, nanoaod::FlatTable::ColumnType atype, const edm::ParameterSet & cfg) : 
+                Variable(const std::string & aname, nanoaod::FlatTable::ColumnType atype, const edm::ParameterSet & cfg) :
                     VariableBase(aname, atype, cfg) {}
                 virtual void fill(std::vector<const T *> selobjs, nanoaod::FlatTable & out) const = 0;
         };
@@ -111,7 +111,7 @@ class SimpleFlatTableProducer : public SimpleFlatTableProducerBase<T, edm::View<
             SimpleFlatTableProducerBase<T, edm::View<T>>(params),
             singleton_(params.getParameter<bool>("singleton")),
             maxLen_(params.existsAs<unsigned int>("maxLen") ? params.getParameter<unsigned int>("maxLen") : std::numeric_limits<unsigned int>::max()),
-            cut_(!singleton_ ? params.getParameter<std::string>("cut") : "", true) 
+            cut_(!singleton_ ? params.getParameter<std::string>("cut") : "", true)
         {
             if (params.existsAs<edm::ParameterSet>("externalVariables")) {
                 edm::ParameterSet const & extvarsPSet = params.getParameter<edm::ParameterSet>("externalVariables");
@@ -133,15 +133,15 @@ class SimpleFlatTableProducer : public SimpleFlatTableProducerBase<T, edm::View<
         std::unique_ptr<nanoaod::FlatTable> fillTable(const edm::Event &iEvent, const edm::Handle<edm::View<T>> & prod) const override {
             std::vector<const T *> selobjs;
             std::vector<edm::Ptr<T>> selptrs; // for external variables
-            if (singleton_) { 
+            if (singleton_) {
                 assert(prod->size() == 1);
                 selobjs.push_back(& (*prod)[0] );
                 if (!extvars_.empty()) selptrs.emplace_back(prod->ptrAt(0));
             } else {
                 for (unsigned int i = 0, n = prod->size(); i < n; ++i) {
                     const auto & obj = (*prod)[i];
-                    if (cut_(obj)) { 
-                        selobjs.push_back(&obj); 
+                    if (cut_(obj)) {
+                        selobjs.push_back(&obj);
                         if (!extvars_.empty()) selptrs.emplace_back(prod->ptrAt(i));
                     }
 		    if(selobjs.size()>=maxLen_) break;
@@ -151,7 +151,7 @@ class SimpleFlatTableProducer : public SimpleFlatTableProducerBase<T, edm::View<
             for (const auto & var : this->vars_) var.fill(selobjs, *out);
             for (const auto & var : this->extvars_) var.fill(iEvent, selptrs, *out);
             return out;
-        } 
+        }
 
     protected:
         bool  singleton_;
@@ -160,19 +160,19 @@ class SimpleFlatTableProducer : public SimpleFlatTableProducerBase<T, edm::View<
 
         class ExtVariable : public base::VariableBase {
             public:
-                ExtVariable(const std::string & aname, nanoaod::FlatTable::ColumnType atype, const edm::ParameterSet & cfg) : 
+                ExtVariable(const std::string & aname, nanoaod::FlatTable::ColumnType atype, const edm::ParameterSet & cfg) :
                     base::VariableBase(aname, atype, cfg) {}
                 virtual void fill(const edm::Event & iEvent, std::vector<edm::Ptr<T>> selptrs, nanoaod::FlatTable & out) const = 0;
         };
         template<typename TIn, typename ValType=TIn>
         class ValueMapVariable : public ExtVariable {
             public:
-                ValueMapVariable(const std::string & aname, nanoaod::FlatTable::ColumnType atype, const edm::ParameterSet & cfg, edm::ConsumesCollector && cc) : 
+                ValueMapVariable(const std::string & aname, nanoaod::FlatTable::ColumnType atype, const edm::ParameterSet & cfg, edm::ConsumesCollector && cc) :
                     ExtVariable(aname, atype, cfg), token_(cc.consumes<edm::ValueMap<TIn>>(cfg.getParameter<edm::InputTag>("src"))) {}
                 void fill(const edm::Event & iEvent, std::vector<edm::Ptr<T>> selptrs, nanoaod::FlatTable & out) const override {
                     edm::Handle<edm::ValueMap<TIn>> vmap;
                     iEvent.getByToken(token_, vmap);
-                    std::vector<ValType> vals(selptrs.size());   
+                    std::vector<ValType> vals(selptrs.size());
                     for (unsigned int i = 0, n = vals.size(); i < n; ++i) {
                         vals[i] = (*vmap)[selptrs[i]];
                     }
@@ -231,4 +231,3 @@ typedef EventSingletonSimpleFlatTableProducer<GenEventInfoProduct> SimpleGenEven
 #include "FWCore/Framework/interface/MakerMacros.h"
 DEFINE_FWK_MODULE(SimpleCandidateFlatTableProducer);
 DEFINE_FWK_MODULE(SimpleGenEventFlatTableProducer);
-

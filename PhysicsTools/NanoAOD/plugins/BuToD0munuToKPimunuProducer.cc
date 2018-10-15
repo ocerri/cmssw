@@ -3,16 +3,21 @@
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Framework/interface/EDProducer.h"
+#include "FWCore/Framework/interface/EDFilter.h"
 #include "FWCore/Utilities/interface/StreamID.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/ESHandle.h"
+#include "FWCore/Common/interface/TriggerNames.h"
 
 #include "DataFormats/PatCandidates/interface/Muon.h"
 #include "DataFormats/PatCandidates/interface/PackedCandidate.h"
 #include "DataFormats/PatCandidates/interface/CompositeCandidate.h"
 #include "DataFormats/BeamSpot/interface/BeamSpot.h"
 #include "DataFormats/VertexReco/interface/Vertex.h"
+#include "DataFormats/Math/interface/deltaR.h"
+#include "DataFormats/Common/interface/TriggerResults.h"
+#include "DataFormats/PatCandidates/interface/TriggerObjectStandAlone.h"
 
 #include "TrackingTools/Records/interface/TransientTrackRecord.h"
 #include "TrackingTools/TransientTrack/interface/TransientTrack.h"
@@ -31,6 +36,9 @@
 #include <TLorentzVector.h>
 #include <TVector.h>
 #include <TMatrix.h>
+#include <iostream>
+#include <string>
+#include <regex>
 
 
 //
@@ -52,39 +60,36 @@ private:
 
     virtual void produce(edm::Event&, const edm::EventSetup&);
 
-    bool KstVertexRefitting(const pat::PackedCandidate &kaon,
-			    const pat::PackedCandidate &pion,
-			    edm::ESHandle<TransientTrackBuilder> theTTBuilder,
-			    RefCountedKinematicVertex &refitVertex,
-			    RefCountedKinematicParticle &refitKst,
-			    RefCountedKinematicParticle &refitKaon,
-			    RefCountedKinematicParticle &refitPion);
+    vector<pat::Muon> TriggerObj_matching(edm::Handle<vector<pat::Muon>>, pat::TriggerObjectStandAlone);
+
+    // bool KstVertexRefitting(const pat::PackedCandidate &kaon,
+		// 	    const pat::PackedCandidate &pion,
+		// 	    edm::ESHandle<TransientTrackBuilder> theTTBuilder,
+		// 	    RefCountedKinematicVertex &refitVertex,
+		// 	    RefCountedKinematicParticle &refitKst,
+		// 	    RefCountedKinematicParticle &refitKaon,
+		// 	    RefCountedKinematicParticle &refitPion);
 
 
-    pair<double,double> computeLS(RefCountedKinematicVertex refitVertex,
-                                  reco::BeamSpot beamSpot);
+    // pair<double,double> computeLS(RefCountedKinematicVertex refitVertex,
+    //                               reco::BeamSpot beamSpot);
 
-    double computeCosAlpha(RefCountedKinematicParticle refitBToKstMuMu,
-                           RefCountedKinematicVertex vertexFitTree,
-                           reco::BeamSpot beamSpot);
+    // double computeCosAlpha(RefCountedKinematicParticle refitBToKstMuMu,
+    //                        RefCountedKinematicVertex vertexFitTree,
+    //                        reco::BeamSpot beamSpot);
 
-    pair<double,double> computeDCA(const pat::PackedCandidate &kaon,
-                                   edm::ESHandle<MagneticField> bFieldHandle,
-                                   reco::BeamSpot beamSpot);
+    // pair<double,double> computeDCA(const pat::PackedCandidate &kaon,
+    //                                edm::ESHandle<MagneticField> bFieldHandle,
+    //                                reco::BeamSpot beamSpot);
 
     // ----------member data ---------------------------
+    edm::EDGetTokenT<reco::BeamSpot> beamSpotSrc_;
+    edm::EDGetTokenT<vector<pat::PackedCandidate>> PFCandSrc_;
+    edm::EDGetTokenT<reco::VertexCollection> vertexSrc_;
+    edm::EDGetTokenT<std::vector<pat::Muon>> muonSrc_;
 
-    edm::EDGetTokenT beamSpotSrc_;
-    edm::EDGetTokenT PFCandSrc_;
-    edm::EDGetTokenT vertexSrc_;
-    edm::EDGetTokenT muonSrc_;
-    // edm::EDGetTokenT<reco::BeamSpot> beamSpotSrc_;
-    // edm::EDGetTokenT<edm::View<pat::PackedCandidate>> PFCandSrc_;
-    // edm::EDGetTokenT<reco::VertexCollection> vertexSrc_;
-    // edm::EDGetTokenT<std::vector<pat::Muon>> muonSrc_;
-
-    edm::EDGetTokenT triggerBitsSrc_;
-    edm::EDGetTokenT triggerObjectsSrc_;
+    edm::EDGetTokenT<edm::TriggerResults> triggerBitsSrc_;
+    edm::EDGetTokenT<vector<pat::TriggerObjectStandAlone>> triggerObjectsSrc_;
 
     // double ptMinMu_;
     // double etaMaxMu_;
@@ -104,17 +109,18 @@ private:
     float D0Mass_ = 1864.83;
     float D0MassErr_ = 0.05;
 
+    int verbose = 0;
 };
 
 
 
 BuToD0munuToKPimunuProducer::BuToD0munuToKPimunuProducer(const edm::ParameterSet &iConfig):
   beamSpotSrc_( consumes<reco::BeamSpot> ( iConfig.getParameter<edm::InputTag>( "beamSpot" ) ) ),
-  PFCandSrc_( consumes<edm::View<pat::PackedCandidate>> ( iConfig.getParameter<edm::InputTag>( "PFCandCollection" ) ) ),
+  PFCandSrc_( consumes<vector<pat::PackedCandidate>> ( iConfig.getParameter<edm::InputTag>( "PFCandCollection" ) ) ),
   vertexSrc_( consumes<reco::VertexCollection> ( iConfig.getParameter<edm::InputTag>( "vertexCollection" ) ) ),
   muonSrc_( consumes<std::vector<pat::Muon>> ( iConfig.getParameter<edm::InputTag>( "muonCollection" ) ) ),
-  triggerBitsSrc_(consumes(iConfig.getParameter("triggerBits"))),
-  triggerObjectsSrc_(consumes(iConfig.getParameter("triggerObjects")))
+  triggerBitsSrc_( consumes<edm::TriggerResults> ( iConfig.getParameter<edm::InputTag>("triggerBits") ) ),
+  triggerObjectsSrc_(consumes<vector<pat::TriggerObjectStandAlone>> ( iConfig.getParameter<edm::InputTag>("triggerObjects") ) )
   // ptMinMu_( iConfig.getParameter<double>( "PtMinMu" ) )
 {
   produces<pat::CompositeCandidateCollection>();
@@ -123,342 +129,431 @@ BuToD0munuToKPimunuProducer::BuToD0munuToKPimunuProducer(const edm::ParameterSet
 
 void BuToD0munuToKPimunuProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
 
-    edm::ESHandle<MagneticField> bFieldHandle;
-    iSetup.get<IdealMagneticFieldRecord>().get(bFieldHandle);
-
-    edm::ESHandle<TransientTrackBuilder> theTTBuilder;
-    iSetup.get<TransientTrackRecord>().get("TransientTrackBuilder",theTTBuilder);
+    // edm::ESHandle<MagneticField> bFieldHandle;
+    // iSetup.get<IdealMagneticFieldRecord>().get(bFieldHandle);
+    //
+    // edm::ESHandle<TransientTrackBuilder> theTTBuilder;
+    // iSetup.get<TransientTrackRecord>().get("TransientTrackBuilder",theTTBuilder);
 
     edm::Handle<reco::BeamSpot> beamSpotHandle;
     iEvent.getByToken(beamSpotSrc_, beamSpotHandle);
     if ( ! beamSpotHandle.isValid() ) {
         edm::LogError("BuToD0munuToKPimunuProducer") << "No beam spot available from EventSetup" ;
     }
-    reco::BeamSpot beamSpot = *beamSpotHandle;
+    // reco::BeamSpot beamSpot = *beamSpotHandle;
 
     edm::Handle<vector<pat::PackedCandidate>> pfCandHandle;
     iEvent.getByToken(PFCandSrc_, pfCandHandle);
-    unsigned int pfCandNumber = pfCandHandle->size();
+    // unsigned int pfCandNumber = pfCandHandle->size();
 
     edm::Handle<vector<reco::Vertex>> vertexHandle;
     iEvent.getByToken(vertexSrc_, vertexHandle);
-    const reco::Vertex & PV = vertexHandle->front();
+    // const reco::Vertex & PV = vertexHandle->front();
 
     edm::Handle<std::vector<pat::Muon>> muonHandle;
     iEvent.getByToken(muonSrc_, muonHandle);
     unsigned int muonNumber = muonHandle->size();
 
-    edm::Handle triggerBitsHandle;
-    iEvent.getByToken(triggerBitsSrc_, triggerBitsHandle);
+    edm::Handle<edm::TriggerResults> triggerBits;
+    iEvent.getByToken(triggerBitsSrc_, triggerBits);
 
-    edm::Handle triggerObjectsHandle;
-    iEvent.getByToken(triggerObjectsSrc_, triggerObjectsHandle);
+    edm::Handle<vector<pat::TriggerObjectStandAlone>> triggerObjects;
+    iEvent.getByToken(triggerObjectsSrc_, triggerObjects);
 
 
     // Output collection
     std::unique_ptr<pat::CompositeCandidateCollection> result( new pat::CompositeCandidateCollection );
 
-    // loop on all the mumuKpi quadruplets
-    for (unsigned int i = 0; i < muonNumber; ++i) {
-        const pat::Muon & muon1 = (*muonHandle)[i];
-        if(!(muon1.isLooseMuon() && muon1.isSoftMuon(PV))) continue;
-        if(muon1.pt()<ptMinMu_ || abs(muon1.eta())>etaMaxMu_) continue;
+    //Get the triggers
+    unsigned int BPH_trigger = 0;
+    std::regex txt_regex_path("HLT_Mu[0-9]+_IP[0-9]+.*");
+    const edm::TriggerNames &names = iEvent.triggerNames(*triggerBits);
+    if (verbose) {std::cout << "\n == BPH TRIGGER PATHS= " << std::endl;}
+    for (unsigned int i = 0, n = triggerBits->size(); i < n; ++i) {
+      if (std::regex_match(names.triggerName(i), txt_regex_path) && triggerBits->accept(i)) {
+        if (verbose) {std::cout << "Trigger " << names.triggerName(i) << ": " << (triggerBits->accept(i) ? "PASS" : "fail (or not run)")<< std::endl;}
+        BPH_trigger = 1;
+      }
+    }
 
-        //Kaon
-        for (unsigned int k = 0; k < pfCandNumber; ++k) {
-                const pat::PackedCandidate & kaon = (*pfCandHandle)[k];
-                if(abs(kaon.pdgId())!=211) continue; //Charged hadrons
-                if(!kaon.hasTrackDetails()) continue;
-                if(kaon.pt()<ptMinKaon_ || abs(kaon.eta())>etaMaxKaon_) continue;
+    vector<pat::Muon> matching_muons;
+    pat::Muon * muon_trg = 0;
+    pat::TriggerObjectStandAlone * obj_trg = 0;
 
-                pair<double,double> DCA_kaon = computeDCA(kaon, bFieldHandle, beamSpot);
-                double DCABS_kaon = DCA_kaon.first;
-                double DCABSErr_kaon = DCA_kaon.second;
+    if(BPH_trigger) {
+      if (verbose) {cout << "\n TRIGGER OBJECTS " << endl;}
+      uint k = 0;
+      for (pat::TriggerObjectStandAlone obj : *triggerObjects) {
+        obj.unpackNamesAndLabels(iEvent, *triggerBits);
+        vector pathNamesAll = obj.pathNames(false);
+        vector pathNamesLast = obj.pathNames(true);
 
-                if(fabs(DCABS_kaon/DCABSErr_kaon)<DCASigMinKaon_) continue;
+        unsigned int obj_BPH_path = 0;
+        for (unsigned h = 0, n = pathNamesAll.size(); h < n; ++h) {
+          if (regex_match(pathNamesAll[h], txt_regex_path)) obj_BPH_path = 1;
+        }
+        std::regex txt_regex_coll("hlt.*MuonCandidates::HLT");
+        if (!regex_match(obj.collection(), txt_regex_coll)) obj_BPH_path *= 0;
 
-                for (unsigned int l = 0; l < pfCandNumber; ++l) {
-                  if(k==l) continue;
-                  const pat::PackedCandidate & pion = (*pfCandHandle)[l];
+        if (obj_BPH_path){
+          if (verbose) {
+            cout << "\tTrigger object:  pt " << obj.pt() << ", eta " << obj.eta() << ", phi " << obj.phi() << endl;
+            // Print trigger object collection and type
+            cout << "\t   Collection: " << obj.collection() << endl;
+            // cout << "\t   Type IDs:   ";
+            // for (unsigned h = 0; h < obj.filterIds().size(); ++h) cout << " " << obj.filterIds()[h] ;
+            // cout << endl;
+            // // Print associated trigger filters
+            // cout << "\t   Filters:    ";
+            // for (unsigned h = 0; h < obj.filterLabels().size(); ++h) cout << " " << obj.filterLabels()[h];
+            // cout << endl;
+            // Print all trigger paths, for each one record also if the object is associated to a 'l3' filter (always true for the
+            // definition used in the PAT trigger producer) and if it's associated to the last filter of a successfull path (which
+            // means that this object did cause this trigger to succeed; however, it doesn't work on some multi-object triggers)
+            // cout << "\t   Paths (" << pathNamesAll.size()<<"/"<<pathNamesLast.size()<<"):    ";
+            // for (unsigned h = 0, n = pathNamesAll.size(); h < n; ++h) {
+            //   bool isBoth = obj.hasPathName( pathNamesAll[h], true, true );
+            //   bool isL3   = obj.hasPathName( pathNamesAll[h], false, true );
+            //   bool isLF   = obj.hasPathName( pathNamesAll[h], true, false );
+            //   bool isNone = obj.hasPathName( pathNamesAll[h], false, false );
+            //   cout << "   " << pathNamesAll[h];
+            //   if (isBoth) cout << "(L,3)";
+            //   if (isL3 && !isBoth) cout << "(*,3)";
+            //   if (isLF && !isBoth) cout << "(L,*)";
+            //   if (isNone && !isBoth && !isL3 && !isLF) cout << "(*,*)";
+            // }
+            cout << endl << endl;
+          }
 
-                  if(abs(pion.pdgId())!=211) continue; //Charged hadrons
-                  if(!pion.hasTrackDetails()) continue;
-                  if(pion.pt()<ptMinPion_ || abs(pion.eta())>etaMaxPion_) continue;
-                  if(kaon.charge()*pion.charge()>0) continue; //Look for D0, so no charge
+          obj_trg = &((*triggerObjects)[k]);
+          
+          matching_muons = TriggerObj_matching(muonHandle, obj);
+          if (matching_muons.size()>0) muon_trg = &(matching_muons[0]);
+          break;
+        }
+        k++;
+      }
 
-                  pair<double,double> DCA_pion = computeDCA(pion, bFieldHandle, beamSpot);
-                  double DCABS_pion = DCA_pion.first;
-                  double DCABSErr_pion = DCA_pion.second;
+      if (verbose) {
+        cout << "\n MUONS " << endl;
+        for (unsigned int k = 0; k < muonNumber; ++k) {
+          const pat::Muon & muon = (*muonHandle)[k];
+          cout << "\t" << k << " " << muon.pdgId() << "  " << muon.pt() << "  " << muon.eta() << "  " << muon.phi() << endl;
+        }
+        cout << endl;
+      }
 
-        		      if(fabs(DCABS_pion/DCABSErr_pion)<DCASigMinPion_) continue;
-
-        		      RefCountedKinematicParticle refitKst;
-        		      RefCountedKinematicVertex refitVertexKst;
-        		      RefCountedKinematicParticle refitKaon_Kst;
-        		      RefCountedKinematicParticle refitPion_Kst;
-
-        		      bool passed = KstVertexRefitting(kaon, pion,
-                                                    theTTBuilder,
-                                                    refitVertexKst,
-                                                    refitKst,
-                                                    refitKaon_Kst,
-                                                    refitPion_Kst
-                                                  );
-
-        		      if(!passed) continue;
-
-        		      pair<double,double> KstLS = computeLS(refitVertexKst,beamSpot);
-        		      double KstLSBS = KstLS.first;
-        		      double KstLSBSErr = KstLS.second;
-
-        		      double KstVtx_CL = TMath::Prob((double)refitVertexKst->chiSquared(), int(rint(refitVertexKst->degreesOfFreedom())));
-
-        		      double Kst_mass_err = sqrt(refitKst->currentState().kinematicParametersError().matrix()(6,6));
-
-        		      math::XYZVector refitKaonV3D_Kst = refitKaon_Kst->refittedTransientTrack().track().momentum();
-        		      math::XYZVector refitPionV3D_Kst = refitPion_Kst->refittedTransientTrack().track().momentum();
-        		      math::XYZVector refitKstV3D = refitKaonV3D_Kst + refitPionV3D_Kst;
-
-        		      RefCountedKinematicVertex refitVertexBToKstMuMu;
-        		      RefCountedKinematicParticle refitBToKstMuMu;
-        		      RefCountedKinematicParticle refitMu1;
-        		      RefCountedKinematicParticle refitMu2;
-        		      RefCountedKinematicParticle refitKst_BToKstMuMu;
-
-        		      passed = BToKstMuMuVertexRefitting(muon1, muon2, refitKst,
-                                                  	 theTTBuilder,
-                                                  	 refitVertexBToKstMuMu,
-                                                  	 refitBToKstMuMu,
-                                                  	 refitMu1,
-                                                  	 refitMu2,
-                                                  	 refitKst_BToKstMuMu
-                                                   );
-
-        		      if (!passed) continue;
-
-        		      pair<double,double> BToKstMuMuLS = computeLS(refitVertexBToKstMuMu,beamSpot);
-        		      double LSBS = BToKstMuMuLS.first;
-        		      double LSBSErr = BToKstMuMuLS.second;
-
-        		      double BToKstMuMuVtx_CL = TMath::Prob((double)refitVertexBToKstMuMu->chiSquared(), int(rint(refitVertexBToKstMuMu->degreesOfFreedom())));
-
-        		      double cosAlpha = computeCosAlpha(refitBToKstMuMu,refitVertexBToKstMuMu,beamSpot);
-
-        		      double mass_err = sqrt(refitBToKstMuMu->currentState().kinematicParametersError().matrix()(6,6));
-
-        		      math::XYZVector refitMuon1V3D = refitMu1->refittedTransientTrack().track().momentum();
-        		      math::XYZVector refitMuon2V3D = refitMu2->refittedTransientTrack().track().momentum();
-        		      math::XYZVector refitKst_BToKstMuMu_V3D = refitKst_BToKstMuMu->refittedTransientTrack().track().momentum();
-        		      math::XYZVector refitBToKstMuMuV3D = refitMuon1V3D + refitMuon2V3D + refitKst_BToKstMuMu_V3D;
-
-        		      pat::CompositeCandidate BToKstMuMuCand;
-        		      BToKstMuMuCand.addDaughter( muon1, "muon1");
-        		      BToKstMuMuCand.addDaughter( muon2, "muon2");
-        		      BToKstMuMuCand.addDaughter( kaon, "kaon");
-        		      BToKstMuMuCand.addDaughter( pion, "pion");
-
-        		      BToKstMuMuCand.addUserInt("mu1_index", i);
-        		      BToKstMuMuCand.addUserInt("mu2_index", j);
-        		      BToKstMuMuCand.addUserInt("kaon_index", k);
-        		      BToKstMuMuCand.addUserInt("pion_index", l);
-
-        		      BToKstMuMuCand.addUserFloat("mu1_pt",     sqrt(refitMuon1V3D.perp2()));
-        		      BToKstMuMuCand.addUserFloat("mu1_eta",    refitMuon1V3D.eta());
-        		      BToKstMuMuCand.addUserFloat("mu1_phi",    refitMuon1V3D.phi());
-        		      BToKstMuMuCand.addUserFloat("mu1_charge", refitMu1->currentState().particleCharge());
-
-        		      BToKstMuMuCand.addUserFloat("mu2_pt",     sqrt(refitMuon2V3D.perp2()));
-        		      BToKstMuMuCand.addUserFloat("mu2_eta",    refitMuon2V3D.eta());
-        		      BToKstMuMuCand.addUserFloat("mu2_phi",    refitMuon2V3D.phi());
-        		      BToKstMuMuCand.addUserFloat("mu2_charge", refitMu2->currentState().particleCharge());
-
-        		      TLorentzVector muon1cand;
-        		      muon1cand.SetPtEtaPhiM(sqrt(refitMuon1V3D.perp2()), refitMuon1V3D.eta(), refitMuon1V3D.phi(), MuonMass_);
-        		      TLorentzVector muon2cand;
-        		      muon2cand.SetPtEtaPhiM(sqrt(refitMuon2V3D.perp2()), refitMuon2V3D.eta(), refitMuon2V3D.phi(), MuonMass_);
-        		      BToKstMuMuCand.addUserFloat("mumuKPiFit_mumu_mass", (muon1cand+muon2cand).Mag());
-
-        		      BToKstMuMuCand.addUserFloat("kaon_pt",    sqrt(refitKaonV3D_Kst.perp2()));
-        		      BToKstMuMuCand.addUserFloat("kaon_eta",   refitKaonV3D_Kst.eta());
-        		      BToKstMuMuCand.addUserFloat("kaon_phi",   refitKaonV3D_Kst.phi());
-        		      BToKstMuMuCand.addUserFloat("kaon_charge",refitKaon_Kst->currentState().particleCharge());
-        		      BToKstMuMuCand.addUserFloat("kaon_DCASig", DCABS_kaon/DCABSErr_kaon);
-
-        		      BToKstMuMuCand.addUserFloat("pion_pt",    sqrt(refitPionV3D_Kst.perp2()));
-        		      BToKstMuMuCand.addUserFloat("pion_eta",   refitPionV3D_Kst.eta());
-        		      BToKstMuMuCand.addUserFloat("pion_phi",   refitPionV3D_Kst.phi());
-        		      BToKstMuMuCand.addUserFloat("pion_charge",refitPion_Kst->currentState().particleCharge());
-        		      BToKstMuMuCand.addUserFloat("pion_DCASig", DCABS_pion/DCABSErr_pion);
-
-        		      BToKstMuMuCand.addUserFloat("Kst_pt", sqrt(refitKstV3D.perp2()));
-        		      BToKstMuMuCand.addUserFloat("Kst_eta", refitKstV3D.eta());
-        		      BToKstMuMuCand.addUserFloat("Kst_phi", refitKstV3D.phi());
-        		      BToKstMuMuCand.addUserFloat("Kst_mass", refitKst->currentState().mass());
-        		      BToKstMuMuCand.addUserFloat("Kst_mass_err", Kst_mass_err);
-        		      BToKstMuMuCand.addUserFloat("Kst_Lxy", (float) KstLSBS/KstLSBSErr);
-        		      BToKstMuMuCand.addUserFloat("Kst_ctxy", (float) KstLSBS/sqrt(refitKstV3D.perp2()));
-        		      BToKstMuMuCand.addUserFloat("Kst_CL_vtx", (float) KstVtx_CL);
-
-        		      BToKstMuMuCand.addUserFloat("pt",     sqrt(refitBToKstMuMuV3D.perp2()));
-        		      BToKstMuMuCand.addUserFloat("eta",    refitBToKstMuMuV3D.eta());
-        		      BToKstMuMuCand.addUserFloat("phi",    refitBToKstMuMuV3D.phi());
-        		      BToKstMuMuCand.addUserFloat("mass",   refitBToKstMuMu->currentState().mass());
-        		      BToKstMuMuCand.addUserFloat("mass_err", mass_err);
-        		      BToKstMuMuCand.addUserFloat("Lxy", (float) LSBS/LSBSErr);
-        		      BToKstMuMuCand.addUserFloat("ctxy", (float) LSBS/sqrt(refitBToKstMuMuV3D.perp2()));
-        		      BToKstMuMuCand.addUserFloat("CL_vtx", (float) BToKstMuMuVtx_CL);
-        		      BToKstMuMuCand.addUserFloat("cosAlpha", (float) cosAlpha);
-
-        		      BToKstMuMuCand.addUserInt("mumuRefit", (int)passedDiMuon);
-        		      BToKstMuMuCand.addUserFloat("mumu_pt", (passedDiMuon)? sqrt(refitMuMuV3D.perp2()) : -1.);
-        		      BToKstMuMuCand.addUserFloat("mumu_eta", (passedDiMuon)? refitMuMuV3D.eta() : -9.);
-        		      BToKstMuMuCand.addUserFloat("mumu_phi", (passedDiMuon)? refitMuMuV3D.phi() : -9.);
-        		      BToKstMuMuCand.addUserFloat("mumu_mass", (passedDiMuon)? refitMuMu->currentState().mass() : -1.);
-        		      BToKstMuMuCand.addUserFloat("mumu_mass_err", (passedDiMuon)?  MuMu_mass_err : -1.);
-        		      BToKstMuMuCand.addUserFloat("mumu_Lxy", (passedDiMuon)? (float) MuMuLSBS/MuMuLSBSErr : -1.);
-        		      BToKstMuMuCand.addUserFloat("mumu_ctxy", (passedDiMuon)? (float) MuMuLSBS/sqrt(refitMuMuV3D.perp2()) : -1.);
-        		      BToKstMuMuCand.addUserFloat("mumu_CL_vtx", (passedDiMuon)? (float) MuMuVtx_CL : -1.);
-
-                  bool passed_2trk = false;
-                  float pt_2trk = -9999.;
-                  float eta_2trk = -9999.;
-                  float phi_2trk = -9999.;
-                  float mass_2trk = -9999.;
-                  float mass_err_2trk = -9999.;
-                  float Lxy_2trk = -9999.;
-                  float ctxy_2trk = -9999.;
-                  float CL_vtx_2trk = -9999.;
-                  float cosAlpha_2trk = -9999.;
-
-                  BToKstMuMuCand.addUserInt("2trkRefit", (int)passed_2trk);
-                  BToKstMuMuCand.addUserFloat("pt_2trk", pt_2trk);
-                  BToKstMuMuCand.addUserFloat("eta_2trk", eta_2trk);
-                  BToKstMuMuCand.addUserFloat("phi_2trk", phi_2trk);
-                  BToKstMuMuCand.addUserFloat("mass_2trk", mass_2trk);
-                  BToKstMuMuCand.addUserFloat("mass_err_2trk", mass_err_2trk);
-                  BToKstMuMuCand.addUserFloat("Lxy_2trk", Lxy_2trk);
-                  BToKstMuMuCand.addUserFloat("ctxy_2trk", ctxy_2trk);
-                  BToKstMuMuCand.addUserFloat("CL_vtx_2trk", CL_vtx_2trk);
-                  BToKstMuMuCand.addUserFloat("cosAlpha_2trk", cosAlpha_2trk);
-
-                  bool passed_4trk = false;
-                  float pt_4trk = -9999.;
-                  float eta_4trk = -9999.;
-                  float phi_4trk = -9999.;
-                  float mass_4trk = -9999.;
-                  float mass_err_4trk = -9999.;
-                  float Lxy_4trk = -9999.;
-                  float ctxy_4trk = -9999.;
-                  float CL_vtx_4trk = -9999.;
-                  float cosAlpha_4trk = -9999.;
-
-                  if(save4TrkRefit_){
-                    RefCountedKinematicVertex refitVertexBToKPiMuMu;
-                    RefCountedKinematicParticle refitBToKPiMuMu;
-                    RefCountedKinematicParticle refitMu1_BToKPiMuMu;
-                    RefCountedKinematicParticle refitMu2_BToKPiMuMu;
-                    RefCountedKinematicParticle refitKaon_BToKPiMuMu;
-                    RefCountedKinematicParticle refitPion_BToKPiMuMu;
-
-                    passed_4trk = BToKPiMuMuVertexRefitting(muon1, muon2, kaon, pion,
-                                                    	       theTTBuilder,
-                                                    	       refitVertexBToKPiMuMu,
-                                                    	       refitBToKPiMuMu,
-                                                    	       refitMu1_BToKPiMuMu,
-                                                    	       refitMu2_BToKPiMuMu,
-                                                    	       refitKaon_BToKPiMuMu,
-                                                    	       refitPion_BToKPiMuMu
-                                                           );
-
-                    if(passed_4trk){
-                      math::XYZVector refitMu1_BToKPiMuMu_V3D = refitMu1_BToKPiMuMu->refittedTransientTrack().track().momentum();
-                      math::XYZVector refitMu2_BToKPiMuMu_V3D = refitMu2_BToKPiMuMu->refittedTransientTrack().track().momentum();
-                      math::XYZVector refitKaon_BToKPiMuMu_V3D = refitKaon_BToKPiMuMu->refittedTransientTrack().track().momentum();
-                      math::XYZVector refitPion_BToKPiMuMu_V3D = refitPion_BToKPiMuMu->refittedTransientTrack().track().momentum();
-                      math::XYZVector refitBToKPiMuMuV3D = refitMu1_BToKPiMuMu_V3D + refitMu2_BToKPiMuMu_V3D + refitKaon_BToKPiMuMu_V3D + refitPion_BToKPiMuMu_V3D;
-
-                      pt_4trk = sqrt(refitBToKPiMuMuV3D.perp2());
-                      eta_4trk = refitBToKPiMuMuV3D.eta();
-                      phi_4trk = refitBToKPiMuMuV3D.phi();
-                      mass_4trk = refitBToKPiMuMu->currentState().mass();
-                      mass_err_4trk = sqrt(refitBToKPiMuMu->currentState().kinematicParametersError().matrix()(6,6));
-
-                      pair<double,double> BToKPiMuMuLS = computeLS(refitVertexBToKPiMuMu,beamSpot);
-                      double LSBS_4trk = BToKPiMuMuLS.first;
-                      double LSBSErr_4trk = BToKPiMuMuLS.second;
-                      Lxy_4trk = LSBS_4trk/LSBSErr_4trk;
-                      ctxy_4trk = LSBS_4trk/pt_4trk;
-                      CL_vtx_4trk = TMath::Prob((double)refitVertexBToKPiMuMu->chiSquared(), int(rint(refitVertexBToKPiMuMu->degreesOfFreedom())));
-                      cosAlpha_4trk = computeCosAlpha(refitBToKPiMuMu,refitVertexBToKPiMuMu,beamSpot);
-
-                    }
-
-                 }
-
-                 BToKstMuMuCand.addUserInt("4trkRefit", (int)passed_4trk);
-                 BToKstMuMuCand.addUserFloat("pt_4trk", pt_4trk);
-                 BToKstMuMuCand.addUserFloat("eta_4trk", eta_4trk);
-                 BToKstMuMuCand.addUserFloat("phi_4trk", phi_4trk);
-                 BToKstMuMuCand.addUserFloat("mass_4trk", mass_4trk);
-                 BToKstMuMuCand.addUserFloat("mass_err_4trk", mass_err_4trk);
-                 BToKstMuMuCand.addUserFloat("Lxy_4trk", Lxy_4trk);
-                 BToKstMuMuCand.addUserFloat("ctxy_4trk", ctxy_4trk);
-                 BToKstMuMuCand.addUserFloat("CL_vtx_4trk", CL_vtx_4trk);
-                 BToKstMuMuCand.addUserFloat("cosAlpha_4trk", cosAlpha_4trk);
-
-        		     result->push_back(BToKstMuMuCand);
-
-      		    }
-            }
 
     }
 
+    pat::CompositeCandidate BToD0KpimunuCand;
+    BToD0KpimunuCand.addUserInt("BPH_trigger", BPH_trigger);
+    result->push_back(BToD0KpimunuCand);
+
+    if()
+
+
+
+    // loop on all the mumuKpi quadruplets
+    // for (unsigned int i = 0; i < muonNumber; ++i) {
+    //     const pat::Muon & muon1 = (*muonHandle)[i];
+    //     if(!(muon1.isLooseMuon() && muon1.isSoftMuon(PV))) continue;
+    //     if(muon1.pt()<ptMinMu_ || abs(muon1.eta())>etaMaxMu_) continue;
+    //
+    //     //Kaon
+    //     for (unsigned int k = 0; k < pfCandNumber; ++k) {
+    //             const pat::PackedCandidate & kaon = (*pfCandHandle)[k];
+    //             if(abs(kaon.pdgId())!=211) continue; //Charged hadrons
+    //             if(!kaon.hasTrackDetails()) continue;
+    //             if(kaon.pt()<ptMinKaon_ || abs(kaon.eta())>etaMaxKaon_) continue;
+    //
+    //             pair<double,double> DCA_kaon = computeDCA(kaon, bFieldHandle, beamSpot);
+    //             double DCABS_kaon = DCA_kaon.first;
+    //             double DCABSErr_kaon = DCA_kaon.second;
+    //
+    //             if(fabs(DCABS_kaon/DCABSErr_kaon)<DCASigMinKaon_) continue;
+    //
+    //             for (unsigned int l = 0; l < pfCandNumber; ++l) {
+    //               if(k==l) continue;
+    //               const pat::PackedCandidate & pion = (*pfCandHandle)[l];
+    //
+    //               if(abs(pion.pdgId())!=211) continue; //Charged hadrons
+    //               if(!pion.hasTrackDetails()) continue;
+    //               if(pion.pt()<ptMinPion_ || abs(pion.eta())>etaMaxPion_) continue;
+    //               if(kaon.charge()*pion.charge()>0) continue; //Look for D0, so no charge
+    //
+    //               pair<double,double> DCA_pion = computeDCA(pion, bFieldHandle, beamSpot);
+    //               double DCABS_pion = DCA_pion.first;
+    //               double DCABSErr_pion = DCA_pion.second;
+    //
+    //     		      if(fabs(DCABS_pion/DCABSErr_pion)<DCASigMinPion_) continue;
+    //
+    //     		      RefCountedKinematicParticle refitKst;
+    //     		      RefCountedKinematicVertex refitVertexKst;
+    //     		      RefCountedKinematicParticle refitKaon_Kst;
+    //     		      RefCountedKinematicParticle refitPion_Kst;
+    //
+    //     		      bool passed = KstVertexRefitting(kaon, pion,
+    //                                                 theTTBuilder,
+    //                                                 refitVertexKst,
+    //                                                 refitKst,
+    //                                                 refitKaon_Kst,
+    //                                                 refitPion_Kst
+    //                                               );
+    //
+    //     		      if(!passed) continue;
+    //
+    //     		      pair<double,double> KstLS = computeLS(refitVertexKst,beamSpot);
+    //     		      double KstLSBS = KstLS.first;
+    //     		      double KstLSBSErr = KstLS.second;
+    //
+    //     		      double KstVtx_CL = TMath::Prob((double)refitVertexKst->chiSquared(), int(rint(refitVertexKst->degreesOfFreedom())));
+    //
+    //     		      double Kst_mass_err = sqrt(refitKst->currentState().kinematicParametersError().matrix()(6,6));
+    //
+    //     		      math::XYZVector refitKaonV3D_Kst = refitKaon_Kst->refittedTransientTrack().track().momentum();
+    //     		      math::XYZVector refitPionV3D_Kst = refitPion_Kst->refittedTransientTrack().track().momentum();
+    //     		      math::XYZVector refitKstV3D = refitKaonV3D_Kst + refitPionV3D_Kst;
+    //
+    //     		      RefCountedKinematicVertex refitVertexBToKstMuMu;
+    //     		      RefCountedKinematicParticle refitBToKstMuMu;
+    //     		      RefCountedKinematicParticle refitMu1;
+    //     		      RefCountedKinematicParticle refitMu2;
+    //     		      RefCountedKinematicParticle refitKst_BToKstMuMu;
+    //
+    //     		      passed = BToKstMuMuVertexRefitting(muon1, muon2, refitKst,
+    //                                               	 theTTBuilder,
+    //                                               	 refitVertexBToKstMuMu,
+    //                                               	 refitBToKstMuMu,
+    //                                               	 refitMu1,
+    //                                               	 refitMu2,
+    //                                               	 refitKst_BToKstMuMu
+    //                                                );
+    //
+    //     		      if (!passed) continue;
+    //
+    //     		      pair<double,double> BToKstMuMuLS = computeLS(refitVertexBToKstMuMu,beamSpot);
+    //     		      double LSBS = BToKstMuMuLS.first;
+    //     		      double LSBSErr = BToKstMuMuLS.second;
+    //
+    //     		      double BToKstMuMuVtx_CL = TMath::Prob((double)refitVertexBToKstMuMu->chiSquared(), int(rint(refitVertexBToKstMuMu->degreesOfFreedom())));
+    //
+    //     		      double cosAlpha = computeCosAlpha(refitBToKstMuMu,refitVertexBToKstMuMu,beamSpot);
+    //
+    //     		      double mass_err = sqrt(refitBToKstMuMu->currentState().kinematicParametersError().matrix()(6,6));
+    //
+    //     		      math::XYZVector refitMuon1V3D = refitMu1->refittedTransientTrack().track().momentum();
+    //     		      math::XYZVector refitMuon2V3D = refitMu2->refittedTransientTrack().track().momentum();
+    //     		      math::XYZVector refitKst_BToKstMuMu_V3D = refitKst_BToKstMuMu->refittedTransientTrack().track().momentum();
+    //     		      math::XYZVector refitBToKstMuMuV3D = refitMuon1V3D + refitMuon2V3D + refitKst_BToKstMuMu_V3D;
+    //
+    //     		      pat::CompositeCandidate BToKstMuMuCand;
+    //     		      BToKstMuMuCand.addDaughter( muon1, "muon1");
+    //     		      BToKstMuMuCand.addDaughter( muon2, "muon2");
+    //     		      BToKstMuMuCand.addDaughter( kaon, "kaon");
+    //     		      BToKstMuMuCand.addDaughter( pion, "pion");
+    //
+    //     		      BToKstMuMuCand.addUserInt("mu1_index", i);
+    //     		      BToKstMuMuCand.addUserInt("mu2_index", j);
+    //     		      BToKstMuMuCand.addUserInt("kaon_index", k);
+    //     		      BToKstMuMuCand.addUserInt("pion_index", l);
+    //
+    //     		      BToKstMuMuCand.addUserFloat("mu1_pt",     sqrt(refitMuon1V3D.perp2()));
+    //     		      BToKstMuMuCand.addUserFloat("mu1_eta",    refitMuon1V3D.eta());
+    //     		      BToKstMuMuCand.addUserFloat("mu1_phi",    refitMuon1V3D.phi());
+    //     		      BToKstMuMuCand.addUserFloat("mu1_charge", refitMu1->currentState().particleCharge());
+    //
+    //     		      BToKstMuMuCand.addUserFloat("mu2_pt",     sqrt(refitMuon2V3D.perp2()));
+    //     		      BToKstMuMuCand.addUserFloat("mu2_eta",    refitMuon2V3D.eta());
+    //     		      BToKstMuMuCand.addUserFloat("mu2_phi",    refitMuon2V3D.phi());
+    //     		      BToKstMuMuCand.addUserFloat("mu2_charge", refitMu2->currentState().particleCharge());
+    //
+    //     		      TLorentzVector muon1cand;
+    //     		      muon1cand.SetPtEtaPhiM(sqrt(refitMuon1V3D.perp2()), refitMuon1V3D.eta(), refitMuon1V3D.phi(), MuonMass_);
+    //     		      TLorentzVector muon2cand;
+    //     		      muon2cand.SetPtEtaPhiM(sqrt(refitMuon2V3D.perp2()), refitMuon2V3D.eta(), refitMuon2V3D.phi(), MuonMass_);
+    //     		      BToKstMuMuCand.addUserFloat("mumuKPiFit_mumu_mass", (muon1cand+muon2cand).Mag());
+    //
+    //     		      BToKstMuMuCand.addUserFloat("kaon_pt",    sqrt(refitKaonV3D_Kst.perp2()));
+    //     		      BToKstMuMuCand.addUserFloat("kaon_eta",   refitKaonV3D_Kst.eta());
+    //     		      BToKstMuMuCand.addUserFloat("kaon_phi",   refitKaonV3D_Kst.phi());
+    //     		      BToKstMuMuCand.addUserFloat("kaon_charge",refitKaon_Kst->currentState().particleCharge());
+    //     		      BToKstMuMuCand.addUserFloat("kaon_DCASig", DCABS_kaon/DCABSErr_kaon);
+    //
+    //     		      BToKstMuMuCand.addUserFloat("pion_pt",    sqrt(refitPionV3D_Kst.perp2()));
+    //     		      BToKstMuMuCand.addUserFloat("pion_eta",   refitPionV3D_Kst.eta());
+    //     		      BToKstMuMuCand.addUserFloat("pion_phi",   refitPionV3D_Kst.phi());
+    //     		      BToKstMuMuCand.addUserFloat("pion_charge",refitPion_Kst->currentState().particleCharge());
+    //     		      BToKstMuMuCand.addUserFloat("pion_DCASig", DCABS_pion/DCABSErr_pion);
+    //
+    //     		      BToKstMuMuCand.addUserFloat("Kst_pt", sqrt(refitKstV3D.perp2()));
+    //     		      BToKstMuMuCand.addUserFloat("Kst_eta", refitKstV3D.eta());
+    //     		      BToKstMuMuCand.addUserFloat("Kst_phi", refitKstV3D.phi());
+    //     		      BToKstMuMuCand.addUserFloat("Kst_mass", refitKst->currentState().mass());
+    //     		      BToKstMuMuCand.addUserFloat("Kst_mass_err", Kst_mass_err);
+    //     		      BToKstMuMuCand.addUserFloat("Kst_Lxy", (float) KstLSBS/KstLSBSErr);
+    //     		      BToKstMuMuCand.addUserFloat("Kst_ctxy", (float) KstLSBS/sqrt(refitKstV3D.perp2()));
+    //     		      BToKstMuMuCand.addUserFloat("Kst_CL_vtx", (float) KstVtx_CL);
+    //
+    //     		      BToKstMuMuCand.addUserFloat("pt",     sqrt(refitBToKstMuMuV3D.perp2()));
+    //     		      BToKstMuMuCand.addUserFloat("eta",    refitBToKstMuMuV3D.eta());
+    //     		      BToKstMuMuCand.addUserFloat("phi",    refitBToKstMuMuV3D.phi());
+    //     		      BToKstMuMuCand.addUserFloat("mass",   refitBToKstMuMu->currentState().mass());
+    //     		      BToKstMuMuCand.addUserFloat("mass_err", mass_err);
+    //     		      BToKstMuMuCand.addUserFloat("Lxy", (float) LSBS/LSBSErr);
+    //     		      BToKstMuMuCand.addUserFloat("ctxy", (float) LSBS/sqrt(refitBToKstMuMuV3D.perp2()));
+    //     		      BToKstMuMuCand.addUserFloat("CL_vtx", (float) BToKstMuMuVtx_CL);
+    //     		      BToKstMuMuCand.addUserFloat("cosAlpha", (float) cosAlpha);
+    //
+    //     		      BToKstMuMuCand.addUserInt("mumuRefit", (int)passedDiMuon);
+    //     		      BToKstMuMuCand.addUserFloat("mumu_pt", (passedDiMuon)? sqrt(refitMuMuV3D.perp2()) : -1.);
+    //     		      BToKstMuMuCand.addUserFloat("mumu_eta", (passedDiMuon)? refitMuMuV3D.eta() : -9.);
+    //     		      BToKstMuMuCand.addUserFloat("mumu_phi", (passedDiMuon)? refitMuMuV3D.phi() : -9.);
+    //     		      BToKstMuMuCand.addUserFloat("mumu_mass", (passedDiMuon)? refitMuMu->currentState().mass() : -1.);
+    //     		      BToKstMuMuCand.addUserFloat("mumu_mass_err", (passedDiMuon)?  MuMu_mass_err : -1.);
+    //     		      BToKstMuMuCand.addUserFloat("mumu_Lxy", (passedDiMuon)? (float) MuMuLSBS/MuMuLSBSErr : -1.);
+    //     		      BToKstMuMuCand.addUserFloat("mumu_ctxy", (passedDiMuon)? (float) MuMuLSBS/sqrt(refitMuMuV3D.perp2()) : -1.);
+    //     		      BToKstMuMuCand.addUserFloat("mumu_CL_vtx", (passedDiMuon)? (float) MuMuVtx_CL : -1.);
+    //
+    //               bool passed_2trk = false;
+    //               float pt_2trk = -9999.;
+    //               float eta_2trk = -9999.;
+    //               float phi_2trk = -9999.;
+    //               float mass_2trk = -9999.;
+    //               float mass_err_2trk = -9999.;
+    //               float Lxy_2trk = -9999.;
+    //               float ctxy_2trk = -9999.;
+    //               float CL_vtx_2trk = -9999.;
+    //               float cosAlpha_2trk = -9999.;
+    //
+    //               BToKstMuMuCand.addUserInt("2trkRefit", (int)passed_2trk);
+    //               BToKstMuMuCand.addUserFloat("pt_2trk", pt_2trk);
+    //               BToKstMuMuCand.addUserFloat("eta_2trk", eta_2trk);
+    //               BToKstMuMuCand.addUserFloat("phi_2trk", phi_2trk);
+    //               BToKstMuMuCand.addUserFloat("mass_2trk", mass_2trk);
+    //               BToKstMuMuCand.addUserFloat("mass_err_2trk", mass_err_2trk);
+    //               BToKstMuMuCand.addUserFloat("Lxy_2trk", Lxy_2trk);
+    //               BToKstMuMuCand.addUserFloat("ctxy_2trk", ctxy_2trk);
+    //               BToKstMuMuCand.addUserFloat("CL_vtx_2trk", CL_vtx_2trk);
+    //               BToKstMuMuCand.addUserFloat("cosAlpha_2trk", cosAlpha_2trk);
+    //
+    //               bool passed_4trk = false;
+    //               float pt_4trk = -9999.;
+    //               float eta_4trk = -9999.;
+    //               float phi_4trk = -9999.;
+    //               float mass_4trk = -9999.;
+    //               float mass_err_4trk = -9999.;
+    //               float Lxy_4trk = -9999.;
+    //               float ctxy_4trk = -9999.;
+    //               float CL_vtx_4trk = -9999.;
+    //               float cosAlpha_4trk = -9999.;
+    //
+    //               if(save4TrkRefit_){
+    //                 RefCountedKinematicVertex refitVertexBToKPiMuMu;
+    //                 RefCountedKinematicParticle refitBToKPiMuMu;
+    //                 RefCountedKinematicParticle refitMu1_BToKPiMuMu;
+    //                 RefCountedKinematicParticle refitMu2_BToKPiMuMu;
+    //                 RefCountedKinematicParticle refitKaon_BToKPiMuMu;
+    //                 RefCountedKinematicParticle refitPion_BToKPiMuMu;
+    //
+    //                 passed_4trk = BToKPiMuMuVertexRefitting(muon1, muon2, kaon, pion,
+    //                                                 	       theTTBuilder,
+    //                                                 	       refitVertexBToKPiMuMu,
+    //                                                 	       refitBToKPiMuMu,
+    //                                                 	       refitMu1_BToKPiMuMu,
+    //                                                 	       refitMu2_BToKPiMuMu,
+    //                                                 	       refitKaon_BToKPiMuMu,
+    //                                                 	       refitPion_BToKPiMuMu
+    //                                                        );
+    //
+    //                 if(passed_4trk){
+    //                   math::XYZVector refitMu1_BToKPiMuMu_V3D = refitMu1_BToKPiMuMu->refittedTransientTrack().track().momentum();
+    //                   math::XYZVector refitMu2_BToKPiMuMu_V3D = refitMu2_BToKPiMuMu->refittedTransientTrack().track().momentum();
+    //                   math::XYZVector refitKaon_BToKPiMuMu_V3D = refitKaon_BToKPiMuMu->refittedTransientTrack().track().momentum();
+    //                   math::XYZVector refitPion_BToKPiMuMu_V3D = refitPion_BToKPiMuMu->refittedTransientTrack().track().momentum();
+    //                   math::XYZVector refitBToKPiMuMuV3D = refitMu1_BToKPiMuMu_V3D + refitMu2_BToKPiMuMu_V3D + refitKaon_BToKPiMuMu_V3D + refitPion_BToKPiMuMu_V3D;
+    //
+    //                   pt_4trk = sqrt(refitBToKPiMuMuV3D.perp2());
+    //                   eta_4trk = refitBToKPiMuMuV3D.eta();
+    //                   phi_4trk = refitBToKPiMuMuV3D.phi();
+    //                   mass_4trk = refitBToKPiMuMu->currentState().mass();
+    //                   mass_err_4trk = sqrt(refitBToKPiMuMu->currentState().kinematicParametersError().matrix()(6,6));
+    //
+    //                   pair<double,double> BToKPiMuMuLS = computeLS(refitVertexBToKPiMuMu,beamSpot);
+    //                   double LSBS_4trk = BToKPiMuMuLS.first;
+    //                   double LSBSErr_4trk = BToKPiMuMuLS.second;
+    //                   Lxy_4trk = LSBS_4trk/LSBSErr_4trk;
+    //                   ctxy_4trk = LSBS_4trk/pt_4trk;
+    //                   CL_vtx_4trk = TMath::Prob((double)refitVertexBToKPiMuMu->chiSquared(), int(rint(refitVertexBToKPiMuMu->degreesOfFreedom())));
+    //                   cosAlpha_4trk = computeCosAlpha(refitBToKPiMuMu,refitVertexBToKPiMuMu,beamSpot);
+    //
+    //                 }
+    //
+    //              }
+    //
+    //              BToKstMuMuCand.addUserInt("4trkRefit", (int)passed_4trk);
+    //              BToKstMuMuCand.addUserFloat("pt_4trk", pt_4trk);
+    //              BToKstMuMuCand.addUserFloat("eta_4trk", eta_4trk);
+    //              BToKstMuMuCand.addUserFloat("phi_4trk", phi_4trk);
+    //              BToKstMuMuCand.addUserFloat("mass_4trk", mass_4trk);
+    //              BToKstMuMuCand.addUserFloat("mass_err_4trk", mass_err_4trk);
+    //              BToKstMuMuCand.addUserFloat("Lxy_4trk", Lxy_4trk);
+    //              BToKstMuMuCand.addUserFloat("ctxy_4trk", ctxy_4trk);
+    //              BToKstMuMuCand.addUserFloat("CL_vtx_4trk", CL_vtx_4trk);
+    //              BToKstMuMuCand.addUserFloat("cosAlpha_4trk", cosAlpha_4trk);
+    //
+        		     // result->push_back(BToKstMuMuCand);
+    //
+    //   		    }
+    //         }
+    //
+    // }
+
     iEvent.put(std::move(result));
-
 }
 
 
-bool BuToD0munuToKPimunuProducer::KstVertexRefitting(const pat::PackedCandidate &kaon,
-					    const pat::PackedCandidate &pion,
-					    edm::ESHandle<TransientTrackBuilder> theTTBuilder,
-					    RefCountedKinematicVertex &refitVertex,
-					    RefCountedKinematicParticle &refitKst,
-					    RefCountedKinematicParticle &refitKaon,
-					    RefCountedKinematicParticle &refitPion){
-
-    const reco::TransientTrack kaonTT = theTTBuilder->build(kaon.bestTrack());
-    const reco::TransientTrack pionTT = theTTBuilder->build(pion.bestTrack());
-
-    KinematicParticleFactoryFromTransientTrack partFactory;
-    KinematicParticleVertexFitter PartVtxFitter;
-
-    std::vector<RefCountedKinematicParticle> KstParticles;
-    double chi = 0.;
-    double ndf = 0.;
-    KstParticles.push_back(partFactory.particle(kaonTT,KaonMass_,chi,ndf,KaonMassErr_));
-    KstParticles.push_back(partFactory.particle(pionTT,PionMass_,chi,ndf,PionMassErr_));
-    RefCountedKinematicTree KstVertexFitTree = PartVtxFitter.fit(KstParticles);
-
-    if ( !KstVertexFitTree->isValid()) return false;
-
-    KstVertexFitTree->movePointerToTheTop();
-    refitVertex = KstVertexFitTree->currentDecayVertex();
-    refitKst = KstVertexFitTree->currentParticle();
-
-    if ( !refitVertex->vertexIsValid()) return false;
-
-    // extract the re-fitted tracks
-    KstVertexFitTree->movePointerToTheTop();
-
-    KstVertexFitTree->movePointerToTheFirstChild();
-    refitKaon = KstVertexFitTree->currentParticle();
-
-    KstVertexFitTree->movePointerToTheNextChild();
-    refitPion = KstVertexFitTree->currentParticle();
-
-    return true;
-
-}
+// bool BuToD0munuToKPimunuProducer::KstVertexRefitting(const pat::PackedCandidate &kaon,
+// 					    const pat::PackedCandidate &pion,
+// 					    edm::ESHandle<TransientTrackBuilder> theTTBuilder,
+// 					    RefCountedKinematicVertex &refitVertex,
+// 					    RefCountedKinematicParticle &refitKst,
+// 					    RefCountedKinematicParticle &refitKaon,
+// 					    RefCountedKinematicParticle &refitPion){
+//
+//     const reco::TransientTrack kaonTT = theTTBuilder->build(kaon.bestTrack());
+//     const reco::TransientTrack pionTT = theTTBuilder->build(pion.bestTrack());
+//
+//     KinematicParticleFactoryFromTransientTrack partFactory;
+//     KinematicParticleVertexFitter PartVtxFitter;
+//
+//     std::vector<RefCountedKinematicParticle> KstParticles;
+//     double chi = 0.;
+//     double ndf = 0.;
+//     KstParticles.push_back(partFactory.particle(kaonTT,KaonMass_,chi,ndf,KaonMassErr_));
+//     KstParticles.push_back(partFactory.particle(pionTT,PionMass_,chi,ndf,PionMassErr_));
+//     RefCountedKinematicTree KstVertexFitTree = PartVtxFitter.fit(KstParticles);
+//
+//     if ( !KstVertexFitTree->isValid()) return false;
+//
+//     KstVertexFitTree->movePointerToTheTop();
+//     refitVertex = KstVertexFitTree->currentDecayVertex();
+//     refitKst = KstVertexFitTree->currentParticle();
+//
+//     if ( !refitVertex->vertexIsValid()) return false;
+//
+//     // extract the re-fitted tracks
+//     KstVertexFitTree->movePointerToTheTop();
+//
+//     KstVertexFitTree->movePointerToTheFirstChild();
+//     refitKaon = KstVertexFitTree->currentParticle();
+//
+//     KstVertexFitTree->movePointerToTheNextChild();
+//     refitPion = KstVertexFitTree->currentParticle();
+//
+//     return true;
+//
+// }
 
 
 
@@ -646,71 +741,93 @@ bool BuToD0munuToKPimunuProducer::KstVertexRefitting(const pat::PackedCandidate 
 
 
 
-pair<double,double> BuToD0munuToKPimunuProducer::computeLS(RefCountedKinematicVertex refitVertex,
-						  reco::BeamSpot beamSpot){
+// pair<double,double> BuToD0munuToKPimunuProducer::computeLS(RefCountedKinematicVertex refitVertex,
+// 						  reco::BeamSpot beamSpot){
+//
+//   TVector v(2);
+//   v[0] = refitVertex->position().x()-beamSpot.position().x();
+//   v[1] = refitVertex->position().y()-beamSpot.position().y();
+//
+//   TMatrix errVtx(2,2);
+//   errVtx(0,0) = refitVertex->error().cxx();
+//   errVtx(0,1) = refitVertex->error().matrix()(0,1);
+//   errVtx(1,0) = errVtx(0,1);
+//   errVtx(1,1) = refitVertex->error().cyy();
+//
+//   TMatrix errBS(2,2);
+//   errBS(0,0) = beamSpot.covariance()(0,0);
+//   errBS(0,1) = beamSpot.covariance()(0,1);
+//   errBS(1,0) = beamSpot.covariance()(1,0);
+//   errBS(1,1) = beamSpot.covariance()(1,1);
+//
+//   double LSBS = sqrt(v.Norm2Sqr());
+//   double LSBSErr = sqrt( v*(errVtx*v) + v*(errBS*v) ) / LSBS;
+//
+//   pair<double,double> LS = make_pair(LSBS,LSBSErr);
+//
+//   return LS;
+// }
 
-  TVector v(2);
-  v[0] = refitVertex->position().x()-beamSpot.position().x();
-  v[1] = refitVertex->position().y()-beamSpot.position().y();
 
-  TMatrix errVtx(2,2);
-  errVtx(0,0) = refitVertex->error().cxx();
-  errVtx(0,1) = refitVertex->error().matrix()(0,1);
-  errVtx(1,0) = errVtx(0,1);
-  errVtx(1,1) = refitVertex->error().cyy();
 
-  TMatrix errBS(2,2);
-  errBS(0,0) = beamSpot.covariance()(0,0);
-  errBS(0,1) = beamSpot.covariance()(0,1);
-  errBS(1,0) = beamSpot.covariance()(1,0);
-  errBS(1,1) = beamSpot.covariance()(1,1);
+// double BuToD0munuToKPimunuProducer::computeCosAlpha(RefCountedKinematicParticle refitBToKstMuMu,
+// 					   RefCountedKinematicVertex refitVertex,
+// 					   reco::BeamSpot beamSpot){
+//
+//   TVector v(2);
+//   v[0] = refitVertex->position().x()-beamSpot.position().x();
+//   v[1] = refitVertex->position().y()-beamSpot.position().y();
+//
+//   TVector w(2);
+//   w[0] = refitBToKstMuMu->currentState().globalMomentum().x();
+//   w[1] = refitBToKstMuMu->currentState().globalMomentum().y();
+//
+//   double cosAlpha = v*w/sqrt(v.Norm2Sqr()*w.Norm2Sqr());
+//   return cosAlpha;
+// }
 
-  double LSBS = sqrt(v.Norm2Sqr());
-  double LSBSErr = sqrt( v*(errVtx*v) + v*(errBS*v) ) / LSBS;
 
-  pair<double,double> LS = make_pair(LSBS,LSBSErr);
 
-  return LS;
+// pair<double,double> BuToD0munuToKPimunuProducer::computeDCA(const pat::PackedCandidate &kaon,
+// 						   edm::ESHandle<MagneticField> bFieldHandle,
+// 						   reco::BeamSpot beamSpot){
+//
+//   const reco::TransientTrack trackTT((*(kaon.bestTrack())), &(*bFieldHandle));
+//
+//   TrajectoryStateClosestToPoint theDCAXBS = trackTT.trajectoryStateClosestToPoint(
+//     GlobalPoint(beamSpot.position().x(),beamSpot.position().y(),beamSpot.position().z())
+//   );
+//
+//   double DCABS = theDCAXBS.perigeeParameters().transverseImpactParameter();
+//   double DCABSErr = theDCAXBS.perigeeError().transverseImpactParameterError();
+//
+//   pair<double,double> DCA = make_pair(DCABS,DCABSErr);
+//
+//   return DCA;
+// }
+
+
+vector<pat::Muon> BuToD0munuToKPimunuProducer::TriggerObj_matching(edm::Handle<vector<pat::Muon>> muon_list, pat::TriggerObjectStandAlone obj) {
+  double max_DeltaR = 0.01;
+  double max_Delta_pt_rel = 0.03;
+
+  out = vector<pat::Muon>;
+
+  for( auto muon : *muon_list) {
+    double dEta = muon.eta() - obj.eta();
+    double dPhi = muon.phi() - obj.phi();
+    double deltaR = sqrt(dEta*dEta + dPhi*dPhi);
+
+    double dpt_rel = abs(muon.pt() - obj.pt())/obj.pt();
+
+    if (dpt_rel < max_Delta_pt_rel && deltaR < max_DeltaR) {
+      if(verbose) {cout << "   deltaR: " << deltaR << "   dpt_rel: " << dpt_rel << endl;}
+      out.push_back(muon);
+    }
+  }
+
+  return out;
 }
-
-
-
-double BuToD0munuToKPimunuProducer::computeCosAlpha(RefCountedKinematicParticle refitBToKstMuMu,
-					   RefCountedKinematicVertex refitVertex,
-					   reco::BeamSpot beamSpot){
-
-  TVector v(2);
-  v[0] = refitVertex->position().x()-beamSpot.position().x();
-  v[1] = refitVertex->position().y()-beamSpot.position().y();
-
-  TVector w(2);
-  w[0] = refitBToKstMuMu->currentState().globalMomentum().x();
-  w[1] = refitBToKstMuMu->currentState().globalMomentum().y();
-
-  double cosAlpha = v*w/sqrt(v.Norm2Sqr()*w.Norm2Sqr());
-  return cosAlpha;
-}
-
-
-
-pair<double,double> BuToD0munuToKPimunuProducer::computeDCA(const pat::PackedCandidate &kaon,
-						   edm::ESHandle<MagneticField> bFieldHandle,
-						   reco::BeamSpot beamSpot){
-
-  const reco::TransientTrack trackTT((*(kaon.bestTrack())), &(*bFieldHandle));
-
-  TrajectoryStateClosestToPoint theDCAXBS = trackTT.trajectoryStateClosestToPoint(
-    GlobalPoint(beamSpot.position().x(),beamSpot.position().y(),beamSpot.position().z())
-  );
-
-  double DCABS = theDCAXBS.perigeeParameters().transverseImpactParameter();
-  double DCABSErr = theDCAXBS.perigeeError().transverseImpactParameterError();
-
-  pair<double,double> DCA = make_pair(DCABS,DCABSErr);
-
-  return DCA;
-}
-
 
 
 
