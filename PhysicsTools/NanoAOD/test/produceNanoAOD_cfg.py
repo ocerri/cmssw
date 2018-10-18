@@ -33,8 +33,8 @@ for i in range(len(flist)):
     flist[i] = 'file:' + flist[i]
 
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring(tuple(flist)),
-    # fileNames = cms.untracked.vstring('file:/eos/user/o/ocerri/BPhysics/data/cmsMC_private/HardQCD_bbar_Bu_D0munu_KPimunu_NoPU_10-2-3_v0/HardQCD_bbar_Bu_D0munu_KPimunu_MINIAODSIM.root'),
+    # fileNames = cms.untracked.vstring(tuple(flist)),
+    fileNames = cms.untracked.vstring('file:/eos/user/o/ocerri/BPhysics/data/cmsMC_private/HardQCD_bbar_Bu_D0munu_KPimunu_NoPU_10-2-3_v0/HardQCD_bbar_Bu_D0munu_KPimunu_MINIAODSIM.root'),
     secondaryFileNames = cms.untracked.vstring()
 )
 
@@ -61,8 +61,8 @@ process.NANOAODSIMoutput = cms.OutputModule("NanoAODOutputModule",
         dataTier = cms.untracked.string('NANOAODSIM'),
         filterName = cms.untracked.string('')
     ),
-    fileName = cms.untracked.string('file:/eos/user/o/ocerri/BPhysics/data/cmsMC_private/HardQCD_bbar_Bu_D0munu_KPimunu_NoPU_10-2-3_v0/jobs_out/HardQCD_bbar_Bu_D0munu_KPimunu_NANOAODSIM_all.root'),
-    # fileName = cms.untracked.string('file:/eos/user/o/ocerri/BPhysics/data/cmsMC_private/HardQCD_bbar_Bu_D0munu_KPimunu_NoPU_10-2-3_v0/HardQCD_bbar_Bu_D0munu_KPimunu_NANOAODSIM.root'),
+    # fileName = cms.untracked.string('file:/eos/user/o/ocerri/BPhysics/data/cmsMC_private/HardQCD_bbar_Bu_D0munu_KPimunu_NoPU_10-2-3_v0/jobs_out/HardQCD_bbar_Bu_D0munu_KPimunu_NANOAODSIM_all.root'),
+    fileName = cms.untracked.string('file:/eos/user/o/ocerri/BPhysics/data/cmsMC_private/HardQCD_bbar_Bu_D0munu_KPimunu_NoPU_10-2-3_v0/HardQCD_bbar_Bu_D0munu_KPimunu_NANOAODSIM.root'),
     # outputCommands = process.NANOAODSIMEventContent.outputCommands
     outputCommands = cms.untracked.vstring(
                                             'drop *',

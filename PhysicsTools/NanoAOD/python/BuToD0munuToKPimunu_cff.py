@@ -8,8 +8,9 @@ BuToD0munuToKPimunu=cms.EDProducer("BuToD0munuToKPimunuProducer",
     vertexCollection=cms.InputTag("offlineSlimmedPrimaryVertices"),
     muonCollection = cms.InputTag("slimmedMuons","", "PAT"),
     triggerBits = cms.InputTag("TriggerResults","","HLT"),
-    triggerObjects = cms.InputTag("slimmedPatTrigger")
-    # PtMinMu=cms.double(2.),
+    triggerObjects = cms.InputTag("slimmedPatTrigger"),
+    max_dR_mh=cms.double(1.5),
+    max_dz_mh=cms.double(0.5)
 )
 
 BuToD0munuToKPimunuTable=cms.EDProducer("SimpleCandidateFlatTableProducer",
@@ -20,7 +21,12 @@ BuToD0munuToKPimunuTable=cms.EDProducer("SimpleCandidateFlatTableProducer",
     singleton=cms.bool(False),
     extension=cms.bool(False),
     variables=cms.PSet(
-        BPH_trigger = Var("userInt('BPH_trigger')", int, doc="BPH_trigger")
+        BPH_trigger = Var("userInt('BPH_trigger')", int, doc="BPH_trigger"),
+        muon_trg_pt = Var("userFloat('muon_trg_pt')", float, doc="muon_trg_pt"),
+        muon_trg_eta = Var("userFloat('muon_trg_eta')", float, doc="muon_trg_eta"),
+        muon_trg_phi = Var("userFloat('muon_trg_phi')", float, doc="muon_trg_phi"),
+        muon_trg_ObjdR = Var("userFloat('muon_trg_ObjdR')", float, doc="muon_trg_ObjdR"),
+        muon_trg_ObjdpTrel = Var("userFloat('muon_trg_ObjdpTrel')", float, doc="muon_trg_ObjdpTrel")
     )
 )
 
