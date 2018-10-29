@@ -9,7 +9,7 @@ namespace DecayTreeFitter
   class MissingParticle : public ParticleBase
   {
   public:
-    MissingParticle(const LHCb::Particle& bc, const ParticleBase* mother) ;
+    MissingParticle(const reco::Candidate& bc, const ParticleBase* mother) ;
     virtual ~MissingParticle() ;
 
     virtual ErrCode initPar1(FitParams*) ;

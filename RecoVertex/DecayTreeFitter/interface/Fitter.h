@@ -8,24 +8,10 @@
 // STD & STL
 // ============================================================================
 #include <vector>
-// ============================================================================
-// GaudiKernel
-// ============================================================================
-// #include "GaudiKernel/SmartIF.h"
-// ============================================================================
-// Track interfaces
-// ============================================================================
-// #include "TrackInterfaces/ITrackStateProvider.h"
-// ============================================================================
-// LHCbMath
-// ============================================================================
-// #include "LHCbMath/ValueWithError.h"
-// #include "LHCbMath/ParticleParams.h"
-// ============================================================================
-// DaVinciTypes
-// ============================================================================
-// #include "Kernel/DecayTree.h"
-// ============================================================================
+
+#include "DataFormats/Candidate/interface/Candidate.h"
+#include "DataFormats/VertexReco/interface/Vertex.h"
+
 namespace DecayTreeFitter
 {
   class DecayChain ;
@@ -41,7 +27,7 @@ namespace DecayTreeFitter
    *  ``Decay-Tree-Fitter''`
    *  @author Wouter Hulsbergen  Wouter.Hulsbergen@nikhef.nl
    */
-  class GAUDI_API Fitter
+  class Fitter
   {
   public:
     // ========================================================================
@@ -56,22 +42,21 @@ namespace DecayTreeFitter
   public:
     // ========================================================================
     /// constructor from the particle (decay head)
-    Fitter ( const LHCb::Particle&   bc                  ,
-             const bool              forceFitAll  = true ,
-             const ITrackStateProvider* extrapolator = 0    ) ;
+    Fitter ( const reco::Candidate&   bc                  ,
+             const bool              forceFitAll  = true );
+             // const ITrackStateProvider* extrapolator = 0    ) ;
     /// constructor from the particle (decay head)
-    Fitter ( const LHCb::Particle&   bc                  ,
-             const ITrackStateProvider* extrapolator        ,
+    Fitter ( const reco::Candidate&   bc                  ,
+             // const ITrackStateProvider* extrapolator        ,
              const bool              forceFitAll  = true ) ;
     /// constructor from the particle (decay head) and primary vertex
-    Fitter ( const LHCb::Particle&   bc                  ,
+    Fitter ( const reco::Candidate&   bc                  ,
              const reco::Vertex& pv                  ,
-             const bool              forceFitAll  = true ,
-             const ITrackStateProvider* extrapolator = 0    ) ;
+             const bool              forceFitAll  = true ) ;
     /// constructor from the particle (decay head) and primary vertex
-    Fitter ( const LHCb::Particle&   bc                  ,
+    Fitter ( const reco::Candidate&   bc                  ,
              const reco::Vertex& pv                  ,
-             const ITrackStateProvider* extrapolator        ,
+             // const ITrackStateProvider* extrapolator        ,
              const bool              forceFitAll  = true ) ;
     /// destructor
     ~Fitter() ;                                                   // destructor
@@ -79,13 +64,13 @@ namespace DecayTreeFitter
   public:
     // ========================================================================
     /// Add or remove a mass constraint
-    void setMassConstraint ( const LHCb::Particle&   cand , bool add = true ) ;
+    void setMassConstraint ( const reco::Candidate&   cand , bool add = true ) ;
     /// Add a constraint to a mass different from the property table mass
-    void setMassConstraint ( const LHCb::Particle&   cand , double mass ) ;
+    void setMassConstraint ( const reco::Candidate&   cand , double mass ) ;
     /// Add or remove a mass constraintfor a certain ParticleID
-    void setMassConstraint ( const LHCb::ParticleID& pid  , bool add = true ) ;
+    void setMassConstraint ( const reco::CandidateID& pid  , bool add = true ) ;
     /// Add a constraint to a mass different from the property table mass
-    void setMassConstraint ( const LHCb::ParticleID& pid  , double mass ) ;
+    void setMassConstraint ( const reco::CandidateID& pid  , double mass ) ;
     /// Fit the decay tree
     void fit ( int     maxNumberOfIterations  = 10   ,
                double deltaChisquareConverged = 0.01 ) ;
@@ -96,13 +81,13 @@ namespace DecayTreeFitter
     /// Print the result of the fit
     std::ostream& fillStream ( std::ostream& s ) const ;
     /// The top level particle that is fitted
-    const LHCb::Particle* particle() const { return m_particle ; }
+    const reco::Candidate* particle() const { return m_particle ; }
     /** Currently the only accessor to the actual fitted data
      *  @param p (INPUT) the particle
      *  @retrn the fitted parameters ( 0 for invaild parameters/fits)
      */
     const Gaudi::Math::ParticleParams*
-    fitParams ( const LHCb::Particle* p = 0 ) const ;
+    fitParams ( const reco::Candidate* p = 0 ) const ;
     /// Total chisquare
     double     chiSquare () const { return m_chiSquare ; }
     /// Total number of DOFs
@@ -112,31 +97,31 @@ namespace DecayTreeFitter
     /// Number of iterations used by vertex fit
     int        nIter     () const { return m_niter  ; }
     /// get the chisquare of everything 'downstream' of a particle
-    ChiSquare chiSquare( const LHCb::Particle& p ) const ;
+    ChiSquare chiSquare( const reco::Candidate& p ) const ;
     /**  Compute the decay length sum of two particles in
      *   the decay tree (useful for e.g. B->DD)
      */
     Gaudi::Math::ValueWithError
-    decayLengthSum ( const LHCb::Particle&, const LHCb::Particle& ) const ;
+    decayLengthSum ( const reco::Candidate&, const reco::Candidate& ) const ;
     /** return an updated decay tree.
      *  this is not a final solution. will
      *  try to move more info to Particle
      */
     LHCb::DecayTree getFittedTree() const ;
-    /** methods to retrieve the result in terms of LHCb::Particles
+    /** methods to retrieve the result in terms of reco::Candidates
      * (note: mother vertex is not updated, and decay length cannot be
      * stored anywhere. Use fitParams instead
      */
-    LHCb::Particle getFitted() const ;
-    /** methods to retrieve the result in terms of LHCb::Particles
+    reco::Candidate getFitted() const ;
+    /** methods to retrieve the result in terms of reco::Candidates
      * (note: mother vertex is not updated, and decay length cannot be
      * stored anywhere. Use fitParams instead
      */
-    LHCb::Particle getFitted(const LHCb::Particle& cand) const ;
+    reco::Candidate getFitted(const reco::Candidate& cand) const ;
     /// update a particlular candidate in the tree
-    bool updateCand ( LHCb::Particle& cand ) const ;
+    bool updateCand ( reco::Candidate& cand ) const ;
     /// update a particlular candidate in the tree
-    bool updateTree ( LHCb::Particle& cand ) const ;
+    bool updateTree ( reco::Candidate& cand ) const ;
     /// error code
     int  errCode  () { return m_errCode ; }
     /// set the verbosity level (for debugging only)
@@ -146,9 +131,9 @@ namespace DecayTreeFitter
   public:
     // ========================================================================
     /// get the extrapolator
-    const ITrackStateProvider* extrapolator() const { return m_extrapolator ; }
+    // const ITrackStateProvider* extrapolator() const { return m_extrapolator ; }
     /// set the track extrapolator
-    void setStateProvider ( const ITrackStateProvider* extrapolator ) ;
+    // void setStateProvider ( const ITrackStateProvider* extrapolator ) ;
     // ========================================================================
   protected:
     // ========================================================================
@@ -156,7 +141,7 @@ namespace DecayTreeFitter
     Gaudi::Math::ParticleParams
     fitParams(const ParticleBase& pb) const ;
     /// Name of a particle in the decay tree
-    std::string name ( const LHCb::Particle& cand) const ;
+    std::string name ( const reco::Candidate& cand) const ;
     // ========================================================================
     Gaudi::Math::ValueWithError
     decayLengthSum(const ParticleBase&,const ParticleBase&) const ;
@@ -169,14 +154,14 @@ namespace DecayTreeFitter
     double globalChiSquare() const ;
     // ========================================================================
     // must be moved to derived class or so ...
-    double add     ( const LHCb::Particle& cand ) ;
-    double remove  ( const LHCb::Particle& cand ) ;
+    double add     ( const reco::Candidate& cand ) ;
+    double remove  ( const reco::Candidate& cand ) ;
     void   updateIndex() ;
     // ========================================================================
-    LHCb::Particle* fittedCand ( const LHCb::Particle& cand       ,
-                                 LHCb::Particle*       headoftree ) const ;
+    reco::Candidate* fittedCand ( const reco::Candidate& cand       ,
+                                 reco::Candidate*       headoftree ) const ;
     void            updateCand ( const ParticleBase&   pb         ,
-                                 LHCb::Particle&       cand       ) const ;
+                                 reco::Candidate&       cand       ) const ;
     // ========================================================================
   private:
     // ========================================================================
@@ -189,7 +174,7 @@ namespace DecayTreeFitter
     // ========================================================================
   private:
     // ========================================================================
-    const LHCb::Particle* m_particle   ;
+    const reco::Candidate* m_particle   ;
     DecayChain*           m_decaychain ;
     FitParams*            m_fitparams  ;
     FitStatus             m_status     ;
@@ -197,11 +182,11 @@ namespace DecayTreeFitter
     int                   m_niter      ;
     int                   m_errCode    ;
     // ========================================================================
-    typedef std::map<const LHCb::Particle*, Gaudi::Math::ParticleParams> Map ;
+    typedef std::map<const reco::Candidate*, Gaudi::Math::ParticleParams> Map ;
     mutable Map m_map ;
     // ========================================================================
     /// track extrapolator (if needed)
-    SmartIF<ITrackStateProvider> m_extrapolator ; // track extrapolator
+    // SmartIF<ITrackStateProvider> m_extrapolator ; // track extrapolator
     // ========================================================================
   } ;
   // ==========================================================================

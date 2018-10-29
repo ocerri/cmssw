@@ -2,7 +2,6 @@
 #include <float.h>
 
 #include "DataFormats/Candidate/interface/Candidate.h"
-// #include "LoKi/ParticleProperties.h"
 
 #include "ParticleBase.h"
 #include "InternalParticle.h"
@@ -29,17 +28,16 @@ namespace DecayTreeFitter
 
   ParticleBase::ParticleBase(const reco::Candidate& particle, const ParticleBase* mother)
     : m_particle(&particle),m_mother(mother),
-      m_prop(LoKi::Particles::ppFromPID(particle.particleID())),
       m_index(0),m_pdtMass(0),m_pdtWidth(0),m_pdtCLifeTime(0),m_charge(0),
       m_name("Unknown"), m_hasMassConstraint(false)
   {
+    m_prop = PDGDatabase.GetParticle(particle.pdgId());
     if( m_prop ) {
-      m_pdtMass      = m_prop->mass() ;
-      m_pdtWidth     = m_prop->width() ;
-      m_pdtCLifeTime = m_prop->ctau() ;
-      double fltcharge = m_prop->charge() ;
-      m_charge = fltcharge < 0 ? int(fltcharge-0.5) : int(fltcharge+0.5) ;
-      m_name = m_prop->name() ;
+      m_pdtMass      = m_prop->Mass() ;
+      m_pdtWidth     = m_prop->Width() ;
+      m_pdtCLifeTime = m_prop->Lifetime() ;
+      m_charge = m_prop->Charge()/3 ;
+      m_name = m_prop->GetName() ;
     } else {
       m_charge = particle.charge()>0 ? 1 : (particle.charge()<0 ? -1 : 0) ;
     }
@@ -97,8 +95,7 @@ namespace DecayTreeFitter
     // This routine interpretes a beta candidate as one of the
     // 'Particles' used by the fitter.
 
-    const reco::CandidateProperty* prop =
-      LoKi::Particles::ppFromPID(particle.particleID()) ;
+    const TParticlePDG* prop = PDGDatabase.GetParticle(particle.pdgId());
 
     if(vtxverbose>=2)
       std::cout << "ParticleBase::createParticle: " << config.forceFitAll() << std::endl ;
@@ -123,7 +120,8 @@ namespace DecayTreeFitter
                   << "I do not understand what you want me to do with this." << std::endl ;
         rc = new InternalParticle(particle,0,config) ; // still need proper head-of-tree class
       }
-    } else if( !iscomposite ) { // external particles
+    }
+    else if( !iscomposite ) { // external particles
       const LHCb::ProtoParticle* proto = particle.proto() ;
       bool hastrack = proto && proto->track() ;
       bool hascalo  = proto && !(proto->calo().empty()) ;
@@ -306,13 +304,11 @@ namespace DecayTreeFitter
                              ParticleContainer& result )
   {
     /// @attention Comparison by ABSPID!
-    if ( m_particle &&
-         m_particle->particleID().abspid() ==pid.abspid() )
-    {  result.push_back(this) ; } ;
+    if ( m_particle && m_particle->particleID().abspid() ==pid.abspid() ) result.push_back(this);
     //
-    for( daucontainer::iterator it = m_daughters.begin() ;
-         it != m_daughters.end(); ++it)
-    { (*it)-> locate( pid, result ) ; }
+    for( daucontainer::iterator it = m_daughters.begin(); it != m_daughters.end(); ++it) {
+       (*it)->locate( pid, result );
+     }
     //
   }
 
@@ -403,8 +399,7 @@ namespace DecayTreeFitter
     return ErrCode::success ;
   }
 
-  ErrCode ParticleBase::projectMassConstraint(const FitParams& fitparams,
-                                              Projection& p) const
+  ErrCode ParticleBase::projectMassConstraint(const FitParams& fitparams, Projection& p) const
   {
     double mass  = pdtMass() ;
     double mass2 = mass*mass ;
@@ -430,8 +425,7 @@ namespace DecayTreeFitter
     return ErrCode::success ;
   }
 
-  ErrCode
-  ParticleBase::projectConstraint(Constraint::Type atype, const FitParams&, Projection&) const
+  ErrCode ParticleBase::projectConstraint(Constraint::Type atype, const FitParams&, Projection&) const
   {
     std::cout << "no method to project this constaint: "
               << name() << " " << type() << " " << atype << std::endl ;
@@ -445,8 +439,7 @@ namespace DecayTreeFitter
   //     return Bz ;
   //   }
 
-  ErrCode
-  ParticleBase::initTau(FitParams* fitparams) const
+  ErrCode ParticleBase::initTau(FitParams* fitparams) const
   {
     int lenindex = lenIndex() ;
     if(lenindex>=0 && hasPosition() ) {

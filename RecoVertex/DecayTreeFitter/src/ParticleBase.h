@@ -7,6 +7,9 @@
 #include "Projection.h"
 #include "RecoVertex/DecayTreeFitter/interface/ChiSquare.h"
 
+#include "GeneratorInterface/Hydjet2Interface/interface/DatabasePDG.h"
+#include "GeneratorInterface/Hydjet2Interface/interface/ParticlePDG.h"
+
 namespace LHCb
 {
   class Particle ;
@@ -31,14 +34,14 @@ namespace DecayTreeFitter
     typedef std::vector<ParticleBase*> ParticleContainer ;
 
     // 'default' constructor
-    ParticleBase(const LHCb::Particle& bc, const ParticleBase* mother) ;
+    ParticleBase(const reco::Candidate& bc, const ParticleBase* mother) ;
 
     // constructor used for InteractionPoint
     ParticleBase(const std::string& name) ;
 
     virtual ~ParticleBase() ;
 
-    static ParticleBase* createParticle(const LHCb::Particle& bc,
+    static ParticleBase* createParticle(const reco::Candidate& bc,
                                         const ParticleBase* mother,
                                         const Configuration& config) ;
 
@@ -50,9 +53,9 @@ namespace DecayTreeFitter
     virtual std::string parname(int index) const ;
     virtual void print(const FitParams*) const ;
 
-    const ParticleBase* locate(const LHCb::Particle& bc) const ;
-    void locate(const LHCb::ParticleID& pid, ParticleContainer& result ) ;
-    const LHCb::Particle& particle() const { return *m_particle ; }
+    const ParticleBase* locate(const reco::Candidate& bc) const ;
+    void locate(int pid, ParticleContainer& result ) ;
+    const reco::Candidate& particle() const { return *m_particle ; }
 
     int index() const { return m_index ; }
     const ParticleBase* mother() const { return m_mother ; }
@@ -97,7 +100,7 @@ namespace DecayTreeFitter
     const daucontainer& daughters() const { return m_daughters ; }
     const_iterator begin() const { return m_daughters.begin() ; }
     const_iterator end()   const { return m_daughters.end() ; }
-    ParticleBase* addDaughter(const LHCb::Particle&, const Configuration& config) ;
+    ParticleBase* addDaughter(const reco::Candidate&, const Configuration& config) ;
     void removeDaughter(const ParticleBase* pb) ;
 
     typedef std::vector< std::pair<const ParticleBase*,int> > indexmap ;
@@ -108,7 +111,7 @@ namespace DecayTreeFitter
     typedef std::vector<DecayTreeFitter::Constraint> constraintlist ;
     virtual void addToConstraintList(constraintlist& alist, int depth) const = 0 ;
     virtual int nFinalChargedCandidates() const ;
-    void setParticle(const LHCb::Particle* bc) { m_particle = bc ; }
+    void setParticle(const reco::Candidate* bc) { m_particle = bc ; }
 
     // collect all particles emitted from vertex with position posindex
     void collectVertexDaughters( daucontainer& particles, int posindex ) ;
@@ -126,21 +129,24 @@ namespace DecayTreeFitter
     ChiSquare chiSquare( const FitParams& params ) const ;
 
   protected:
-    static double pdtCLifeTime(const LHCb::Particle& bc)  ;
-    static bool isAResonance(const LHCb::ParticleProperty& bc) ;
+    static double pdtCLifeTime(const reco::Candidate& bc)  ;
+    static bool isAResonance(const TParticlePDG& bc) ;
     static double bFieldOverC() { return 0 ; } // Bz/c
     ErrCode initTau(FitParams* par) const ;
-    void makeName(const LHCb::Particle& bc)  ;
+    void makeName(const reco::Candidate& bc)  ;
     daucontainer& daughters() { return m_daughters ; }
     bool hasMassConstraint() const { return m_hasMassConstraint ; }
   protected:
     void setIndex(int i) { m_index = i ; }
     void setName(const std::string& n) { m_name = n ; }
   private:
-    const LHCb::Particle* m_particle ;
+    const reco::Candidate* m_particle ;
     const ParticleBase* m_mother ;
     ParticleContainer m_daughters ;
-    const LHCb::ParticleProperty* m_prop ;
+
+    const TParticlePDG* m_prop ;
+    TDatabasePDG PDGDatabase;
+
     int m_index ;
     double m_pdtMass ;      // cached mass
     double m_pdtWidth ;     // particle width (for mass constraints)
