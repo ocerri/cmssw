@@ -31,7 +31,7 @@ namespace DecayTreeFitter
 
   int vtxverbose=0 ;
 
-  ParticleBase::ParticleBase(const int pdgId, const ParticleBase* mother, const reco::Candidate* recoCand)
+  ParticleBase::ParticleBase(const int pdgId, ParticleBase* mother, const reco::Candidate* recoCand)
     : m_recoCand(recoCand),m_mother(mother),
       // m_prop(LoKi::Particles::ppFromPID(particle.particleID())),
       m_index(0),m_pdgId(pdgId),
@@ -39,44 +39,46 @@ namespace DecayTreeFitter
       m_name("Unknown"), m_hasMassConstraint(false)
   {
     switch(abs(m_pdgId)) {
-    case 13:
-      m_pdtMass      = 0.1056583754; //GeV
-      m_pdtWidth     = 0.0000000024; //GeV
-      m_pdtCLifeTime = 658.6384E3; //mm
-      m_charge       = m_pdgId>0? -1 : 1;
-      m_name         = m_pdgId>0? "mu-" : "mu+";
-      break;
-    case 211:
-      m_pdtMass      = 0.13957018; //GeV
-      m_pdtWidth     = 0.00000035; //GeV
-      m_pdtCLifeTime = 7.80445E3; //mm
-      m_charge       = m_pdgId>0? 1 : -1;
-      m_name         = m_pdgId>0? "pi+" : "pi-";
-      break;
-    case 321:
-      m_pdtMass      = 0.493677; //GeV
-      m_pdtWidth     = 0.000016; //GeV
-      m_pdtCLifeTime = 3.711E3; //mm
-      m_charge       = m_pdgId>0? 1 : -1;
-      m_name         = m_pdgId>0? "pi+" : "pi-";
-      break;
-    case 421:
-      m_pdtMass      = 1.86483; //GeV
-      m_pdtWidth     = 0.00005; //GeV
-      m_pdtCLifeTime = 122.9E-3; //mm
-      m_charge       = 0;
-      m_name         = "D0";
-      break;
-    case 521:
-      m_pdtMass      = 5.27931; //GeV
-      m_pdtWidth     = 0.00015; //GeV
-      m_pdtCLifeTime = 491.1E-3; //mm
-      m_charge       = m_pdgId>0? 1 : -1;
-      m_name         = m_pdgId>0? "B+" : "B-";
-      break;
-    default:
+      case 13:
+        m_pdtMass      = 0.1056583754; //GeV
+        m_pdtWidth     = 0.0000000024; //GeV
+        m_pdtCLifeTime = 658.6384E3; //mm
+        m_charge       = m_pdgId>0? -1 : 1;
+        m_name         = m_pdgId>0? "mu-" : "mu+";
+        break;
+      case 211:
+        m_pdtMass      = 0.13957018; //GeV
+        m_pdtWidth     = 0.00000035; //GeV
+        m_pdtCLifeTime = 7.80445E3; //mm
+        m_charge       = m_pdgId>0? 1 : -1;
+        m_name         = m_pdgId>0? "pi+" : "pi-";
+        break;
+      case 321:
+        m_pdtMass      = 0.493677; //GeV
+        m_pdtWidth     = 0.000016; //GeV
+        m_pdtCLifeTime = 3.711E3; //mm
+        m_charge       = m_pdgId>0? 1 : -1;
+        m_name         = m_pdgId>0? "pi+" : "pi-";
+        break;
+      case 421:
+        m_pdtMass      = 1.86483; //GeV
+        m_pdtWidth     = 0.00005; //GeV
+        m_pdtCLifeTime = 122.9E-3; //mm
+        m_charge       = 0;
+        m_name         = "D0";
+        break;
+      case 521:
+        m_pdtMass      = 5.27931; //GeV
+        m_pdtWidth     = 0.00015; //GeV
+        m_pdtCLifeTime = 491.1E-3; //mm
+        m_charge       = m_pdgId>0? 1 : -1;
+        m_name         = m_pdgId>0? "B+" : "B-";
+        break;
+      default:
       std::cout << "PID " << m_pdgId << " not supported yet" << std::endl;
     }
+
+    // if(m_mother) m_mother->addDaughter(this);
   }
 
 

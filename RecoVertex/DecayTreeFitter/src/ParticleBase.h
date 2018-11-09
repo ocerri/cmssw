@@ -34,17 +34,12 @@ namespace DecayTreeFitter
     typedef std::vector<ParticleBase*> ParticleContainer;
 
     // 'default' constructor
-    ParticleBase(const int pdgId, const ParticleBase* mother, const reco::Candidate* recoCand);
-    // ParticleBase(const LHCb::Particle& bc, const ParticleBase* mother);
+    ParticleBase(const int pdgId, ParticleBase* mother, const reco::Candidate* recoCand);
 
     // constructor used for InteractionPoint
     ParticleBase(const std::string& name);
 
     virtual ~ParticleBase();
-
-    // static ParticleBase* createParticle(const LHCb::Particle& bc,
-    //                                     const ParticleBase* mother,
-    //                                     const Configuration& config);
 
     virtual int dim() const = 0;
     virtual void updateIndex(int& offset);
@@ -145,7 +140,7 @@ namespace DecayTreeFitter
     void setName(const std::string& n) { m_name = n; }
   private:
     const reco::Candidate* m_recoCand;
-    const ParticleBase* m_mother;
+    const ParticleBase* m_mother = nullptr;
     ParticleContainer m_daughters;
     // const LHCb::ParticleProperty* m_prop;
     int m_index;
