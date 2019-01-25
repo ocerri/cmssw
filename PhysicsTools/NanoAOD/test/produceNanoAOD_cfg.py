@@ -26,15 +26,17 @@ process.maxEvents = cms.untracked.PSet(
     # input = cms.untracked.int32(-1)
 )
 
+process.MessageLogger.cerr.FwkReport.reportEvery = 1000
+
 # Input source
 from glob import glob
-flist = glob('/eos/user/o/ocerri/BPhysics/data/cmsMC_private/HardQCD_bbar_Bu_D0munu_KPimunu_NoPU_10-2-3_v0/jobs_out/*MINIAODSIM*.root')
+flist = glob('/eos/user/o/ocerri/BPhysics/data/cmsMC_private/BPH_Tag-Bm_D0kpmunu_Probe-Bp_D0kpmunu_NoPU_10-2-3_v0/jobs_out/*MINIAODSIM*.root')
 for i in range(len(flist)):
     flist[i] = 'file:' + flist[i]
 
 process.source = cms.Source("PoolSource",
     # fileNames = cms.untracked.vstring(tuple(flist)),
-    fileNames = cms.untracked.vstring('file:/eos/user/o/ocerri/BPhysics/data/cmsMC_private/HardQCD_bbar_Bu_D0munu_KPimunu_NoPU_10-2-3_v0/HardQCD_bbar_Bu_D0munu_KPimunu_MINIAODSIM.root'),
+    fileNames = cms.untracked.vstring('file:/eos/user/o/ocerri/BPhysics/data/cmsMC_private/BPH_Tag-Bm_D0kpmunu_Probe-Bp_D0kpmunu_NoPU_10-2-3_v0/BPH_Tag-Bm_D0kpmunu_Probe-Bp_D0kpmunu_MINIAODSIM.root'),
     secondaryFileNames = cms.untracked.vstring()
 )
 
@@ -61,8 +63,8 @@ process.NANOAODSIMoutput = cms.OutputModule("NanoAODOutputModule",
         dataTier = cms.untracked.string('NANOAODSIM'),
         filterName = cms.untracked.string('')
     ),
-    # fileName = cms.untracked.string('file:/eos/user/o/ocerri/BPhysics/data/cmsMC_private/HardQCD_bbar_Bu_D0munu_KPimunu_NoPU_10-2-3_v0/jobs_out/HardQCD_bbar_Bu_D0munu_KPimunu_NANOAODSIM_all.root'),
-    fileName = cms.untracked.string('file:/eos/user/o/ocerri/BPhysics/data/cmsMC_private/HardQCD_bbar_Bu_D0munu_KPimunu_NoPU_10-2-3_v0/HardQCD_bbar_Bu_D0munu_KPimunu_NANOAODSIM.root'),
+    # fileName = cms.untracked.string('file:/eos/user/o/ocerri/BPhysics/data/cmsMC_private/BPH_Tag-Bm_D0kpmunu_Probe-Bp_D0kpmunu_NoPU_10-2-3_v0/jobs_out/HardQCD_bbar_Bu_D0munu_KPimunu_NANOAODSIM_all.root'),
+    fileName = cms.untracked.string('file:/eos/user/o/ocerri/BPhysics/data/cmsMC_private/BPH_Tag-Bm_D0kpmunu_Probe-Bp_D0kpmunu_NoPU_10-2-3_v0/BPH_Tag-Bm_D0kpmunu_Probe-Bp_D0kpmunu_NANOAODSIM.root'),
     # outputCommands = process.NANOAODSIMEventContent.outputCommands
     outputCommands = cms.untracked.vstring(
                                             'drop *',
@@ -91,13 +93,17 @@ from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, '102X_upgrade2018_realistic_v12', '')
 
 # Path and EndPath definitions
-process.load('PhysicsTools.NanoAOD.BuToD0munuToKPimunu_cff')
-process.nanoSequenceMC.insert(-1, process.BuToD0munuToKPimunuRECOSequence)
-process.nanoSequenceMC.insert(-1, process.BuToD0munuToKPimunuMCSequence)
+process.load('PhysicsTools.NanoAOD.BPH_Tag-Bm_D0kpmunu_Probe-Bp_D0kpmunu_cff')
+sequence_to_execute = cms.Sequence(process.nanoSequenceMC + process.BPHTriggerPath + process.BuToD0munuToKPimunuRECOSequence + process.BuToD0munuToKPimunuMCSequence)
+# process.nanoSequenceMC.insert(-1, process.BuToD0munuToKPimunuRECOSequence)
+# process.nanoSequenceMC.insert(-1, process.BuToD0munuToKPimunuMCSequence)
 
-process.nanoAOD_step = cms.Path(process.nanoSequenceMC)
+process.nanoAOD_step = cms.Path(sequence_to_execute)
+# process.nanoAOD_step = cms.Path(process.nanoSequenceMC)
 process.endjob_step = cms.EndPath(process.endOfProcess)
+process.NANOAODSIMoutput.SelectEvents = cms.untracked.PSet(SelectEvents = cms.vstring('nanoAOD_step'))
 process.NANOAODSIMoutput_step = cms.EndPath(process.NANOAODSIMoutput)
+
 
 # Schedule definition
 process.schedule = cms.Schedule(process.nanoAOD_step,process.endjob_step,process.NANOAODSIMoutput_step)

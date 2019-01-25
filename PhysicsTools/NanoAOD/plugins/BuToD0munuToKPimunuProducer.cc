@@ -122,6 +122,7 @@ void BuToD0munuToKPimunuProducer::produce(edm::Event& iEvent, const edm::EventSe
     if ( ! beamSpotHandle.isValid() ) {
         edm::LogError("BuToD0munuToKPimunuProducer") << "No beam spot available from EventSetup" ;
     }
+    if (verbose) {cout << "---- Evt ----" << endl;}
     // reco::BeamSpot beamSpot = *beamSpotHandle;
 
     edm::Handle<vector<pat::PackedCandidate>> pfCandHandle;
@@ -150,7 +151,7 @@ void BuToD0munuToKPimunuProducer::produce(edm::Event& iEvent, const edm::EventSe
     unsigned int BPH_trigger = 0;
     std::regex txt_regex_path("HLT_Mu[0-9]+_IP[0-9]+.*");
     const edm::TriggerNames &names = iEvent.triggerNames(*triggerBits);
-    if (verbose) {std::cout << "\n == BPH TRIGGER PATHS= " << std::endl;}
+    if (verbose) {std::cout << "\nPASSED BPH TRIGGER PATHS: " << std::endl;}
     for (unsigned int i = 0, n = triggerBits->size(); i < n; ++i) {
       if (std::regex_match(names.triggerName(i), txt_regex_path) && triggerBits->accept(i)) {
         if (verbose) {std::cout << "Trigger " << names.triggerName(i) << ": " << (triggerBits->accept(i) ? "PASS" : "fail (or not run)")<< std::endl;}
@@ -163,7 +164,7 @@ void BuToD0munuToKPimunuProducer::produce(edm::Event& iEvent, const edm::EventSe
     pat::TriggerObjectStandAlone * obj_trg = 0;
 
     if(BPH_trigger) {
-      if (verbose) {cout << "\n TRIGGER OBJECTS " << endl;}
+      if (verbose) {cout << "\nTRIGGER OBJECTS " << endl;}
       uint k = 0;
       for (pat::TriggerObjectStandAlone obj : *triggerObjects) {
         obj.unpackNamesAndLabels(iEvent, *triggerBits);
@@ -181,7 +182,7 @@ void BuToD0munuToKPimunuProducer::produce(edm::Event& iEvent, const edm::EventSe
           if (verbose) {
             cout << "\tTrigger object:  pt " << obj.pt() << ", eta " << obj.eta() << ", phi " << obj.phi() << endl;
             // Print trigger object collection and type
-            cout << "\t   Collection: " << obj.collection() << endl;
+            cout << "\tCollection: " << obj.collection() << endl;
             // cout << "\t   Type IDs:   ";
             // for (unsigned h = 0; h < obj.filterIds().size(); ++h) cout << " " << obj.filterIds()[h] ;
             // cout << endl;
@@ -204,7 +205,7 @@ void BuToD0munuToKPimunuProducer::produce(edm::Event& iEvent, const edm::EventSe
             //   if (isLF && !isBoth) cout << "(L,*)";
             //   if (isNone && !isBoth && !isL3 && !isLF) cout << "(*,*)";
             // }
-            cout << endl << endl;
+            cout << endl;
           }
 
           if (obj_trg == 0 || obj_trg->pt() < obj.pt()) {
@@ -270,7 +271,7 @@ void BuToD0munuToKPimunuProducer::produce(edm::Event& iEvent, const edm::EventSe
           TLorentzVector pp, pm;
           pp.SetPtEtaPhiM(hp.pt(), hp.eta(), hp.phi(), Mp_guess);
           pm.SetPtEtaPhiM(hm.pt(), hm.eta(), hm.phi(), Mm_guess);
-          cout << Ncomb << " " << (pp+pm).M() << endl;
+          // cout << Ncomb << " " << (pp+pm).M() << endl;
           Ncomb++;
         }
       }
@@ -316,7 +317,7 @@ vector<pat::Muon> BuToD0munuToKPimunuProducer::TriggerObj_matching(edm::Handle<v
     double dpt_rel = abs(muon.pt() - obj.pt())/obj.pt();
 
     if (dpt_rel < max_Delta_pt_rel && deltaR < max_DeltaR) {
-      if(verbose) {cout << "   deltaR: " << deltaR << "   dpt_rel: " << dpt_rel << endl;}
+      if(verbose) {cout << "\tdeltaR: " << deltaR << "   dpt_rel: " << dpt_rel << endl;}
       out.push_back(muon);
     }
   }

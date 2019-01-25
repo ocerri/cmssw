@@ -4,7 +4,8 @@ import FWCore.ParameterSet.Config as cms
 BPHTriggerPath = cms.EDFilter("BPHTriggerPathFilter",
         muonCollection = cms.InputTag("slimmedMuons","", "PAT"),
         triggerObjects = cms.InputTag("slimmedPatTrigger"),
-        max_dR_mh = cms.int32(-1),
+        triggerBits = cms.InputTag("TriggerResults","","HLT"),
+        muon_charge = cms.int32(-1)
 )
 
 BuToD0munuToKPimunu = cms.EDProducer("BuToD0munuToKPimunuProducer",
